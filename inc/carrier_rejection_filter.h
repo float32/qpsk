@@ -46,7 +46,7 @@ protected:
             yield line.rstrip(' ')
 
     kernel_length = 7
-    symbol_durations = (6, 8, 12, 16, 18, 24, 32)
+    symbol_durations = (6, 8, 12, 16)
 
     cog.outl('static constexpr uint32_t kKernelLength = {0};'
         .format(kernel_length))
@@ -101,30 +101,12 @@ protected:
          1.56977082e-01,  1.37855092e-01,  1.68060009e-01,  1.79345186e-01,
          1.68060009e-01,  1.37855092e-01,  1.56977082e-01,
     };
-    static constexpr float kKernel18[7] =
-    {
-         1.70307392e-01,  1.19520171e-01,  1.40486857e-01,  1.48054138e-01,
-         1.40486857e-01,  1.19520171e-01,  1.70307392e-01,
-    };
-    static constexpr float kKernel24[7] =
-    {
-         1.98219423e-01,  7.96402625e-02,  8.76371060e-02,  9.05001755e-02,
-         8.76371060e-02,  7.96402625e-02,  1.98219423e-01,
-    };
-    static constexpr float kKernel32[7] =
-    {
-         2.18214705e-01,  4.99257841e-02,  5.25785277e-02,  5.34812099e-02,
-         5.25785277e-02,  4.99257841e-02,  2.18214705e-01,
-    };
 
     static_assert(
         symbol_duration ==  6 ||
         symbol_duration ==  8 ||
         symbol_duration == 12 ||
         symbol_duration == 16 ||
-        symbol_duration == 18 ||
-        symbol_duration == 24 ||
-        symbol_duration == 32 ||
         false, "Unsupported symbol duration");
 
     static constexpr const float* kKernel =
@@ -132,9 +114,6 @@ protected:
         symbol_duration ==  8 ? kKernel08 :
         symbol_duration == 12 ? kKernel12 :
         symbol_duration == 16 ? kKernel16 :
-        symbol_duration == 18 ? kKernel18 :
-        symbol_duration == 24 ? kKernel24 :
-        symbol_duration == 32 ? kKernel32 :
                                 nullptr;
     // [[[end]]]
 
