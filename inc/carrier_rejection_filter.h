@@ -25,7 +25,7 @@
 #define QPSK_CARRIER_REJECTION_FILTER_H_
 
 #include <cstdint>
-#include "inc/window.h"
+#include "window.h"
 
 namespace qpsk
 {

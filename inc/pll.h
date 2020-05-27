@@ -25,8 +25,8 @@
 #define QPSK_PLL_H_
 
 #include <cstdint>
-#include "inc/one_pole.h"
-#include "inc/util.h"
+#include "one_pole.h"
+#include "util.h"
 
 namespace qpsk
 {

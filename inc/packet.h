@@ -26,7 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
-#include "inc/crc32.h"
+#include "crc32.h"
 
 namespace qpsk
 {

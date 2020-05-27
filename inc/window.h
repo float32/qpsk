@@ -25,7 +25,7 @@
 
 #include <cstdint>
 #include <cmath>
-#include "inc/delay_line.h"
+#include "delay_line.h"
 
 namespace qpsk
 {

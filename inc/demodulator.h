@@ -25,13 +25,13 @@
 #define QPSK_DEMODULATOR_H_
 
 #include <cstdint>
-#include "inc/carrier_rejection_filter.h"
-#include "inc/correlator.h"
-#include "inc/fifo.h"
-#include "inc/one_pole.h"
-#include "inc/pll.h"
-#include "inc/util.h"
-#include "inc/window.h"
+#include "carrier_rejection_filter.h"
+#include "correlator.h"
+#include "fifo.h"
+#include "one_pole.h"
+#include "pll.h"
+#include "util.h"
+#include "window.h"
 
 namespace qpsk
 {

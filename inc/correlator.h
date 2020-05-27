@@ -25,7 +25,7 @@
 #define QPSK_CORRELATOR_H_
 
 #include <cstdint>
-#include "inc/window.h"
+#include "window.h"
 
 namespace qpsk
 {
