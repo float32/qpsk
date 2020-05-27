@@ -156,8 +156,10 @@ public:
     }
 
     using PageCallback = bool(uint32_t*);
+    using PacketCallback = void(void);
 
-    qpsk::Error Receive(PageCallback page_cb, uint32_t timeout = 0)
+    qpsk::Error Receive(PageCallback page_cb,
+        PacketCallback packet_cb = nullptr, uint32_t timeout = 0)
     {
         uint32_t elapsed = 0;
 
@@ -193,6 +195,11 @@ public:
                         if (packet_.Valid())
                         {
                             packet_count_++;
+
+                            if (packet_cb)
+                            {
+                                packet_cb();
+                            }
 
                             Realign();
                             page_.AppendPacket(packet_);
