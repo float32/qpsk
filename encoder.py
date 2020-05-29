@@ -39,6 +39,9 @@ import os.path
 import struct
 import array
 import math
+import sys
+import string
+import io
 
 
 
@@ -146,46 +149,61 @@ def main():
     parser.add_argument('-x', '--offset', dest='file_offset',
         default='0',
         help='Ignore hex file contents before this location')
-    parser.add_argument('-b', dest='file_base',
+    parser.add_argument('-b', '--base', dest='file_base',
         default='0',
         help='Offset is relative to this address')
     parser.add_argument('-e', '--seed', dest='crc_seed',
         default='0',
-        help='CRC32 seed (default 0)')
+        help='CRC32 seed, default 0')
     parser.add_argument('-t', '--file-type', dest='file_type',
             choices=['hex', 'bin', 'auto'], default='auto',
-            help='Input file type (default auto)')
+            help='Input file type, default auto')
     parser.add_argument('--fill', dest='fill_byte',
         default='0xFF',
         help='Fill/pad byte (default 0xFF)')
     parser.add_argument('-o', '--output-file', dest='output_file',
         default=None,
-        help='Output wav file (default derived from input file name)',
+        help='Output wav file, default derived from input file name if given'
+        ', else stdout',
         metavar='FILE')
     parser.add_argument('-i', '--input-file', dest='input_file',
-        required=True,
-        help='Input file (bin or hex)')
+        default='-',
+        help='Input file (bin or hex), default stdin')
     args = parser.parse_args()
 
     fill_byte = int(args.fill_byte, 0)
 
-    (root, ext) = os.path.splitext(args.input_file)
-    if args.file_type == 'auto':
-        assert ext in ['.bin', '.hex']
-        args.file_type = ext[1:]
+    if args.input_file == '-':
+        input_file = sys.stdin.buffer
+        if args.output_file == None:
+            args.output_file = '-'
+    else:
+        input_file = open(args.input_file, 'rb')
+        (root, ext) = os.path.splitext(args.input_file)
+        if args.file_type == 'auto' and ext in ['.bin', '.hex']:
+            args.file_type = ext[1:]
+        if args.output_file == None:
+            args.output_file = root + '.wav'
 
-    if args.file_type == 'bin':
-        data = open(args.input_file, 'rb').read()
-    elif args.file_type == 'hex':
+    data = input_file.read()
+    if input_file is not sys.stdin.buffer:
+        input_file.close()
+
+    if args.file_type == 'auto':
+        is_hex = all(map(lambda x: chr(x) in string.hexdigits + ':\r\n', data))
+        args.file_type = 'hex' if is_hex else 'bin'
+
+    if args.file_type == 'hex':
         offset = int(args.file_offset, 0)
         base = int(args.file_base, 0)
-        ihex = IntelHex(args.input_file)[base+offset:]
+        ihex = IntelHex(io.StringIO(data.decode('ascii')))[base+offset:]
         ihex.padding = fill_byte
         data = ihex.tobinstr()
 
-    output_file = args.output_file
-    if not output_file:
-        output_file = root + '.wav'
+    if args.output_file == '-':
+        output_file = sys.stdout.buffer
+    else:
+        output_file = args.output_file
 
     encoder = QPSKEncoder(
             sample_rate = args.sample_rate,
@@ -195,7 +213,7 @@ def main():
             crc_seed    = int(args.crc_seed, 0),
             page_write_time = float(args.page_write_time))
 
-    fill_byte = struct.pack('B', int(args.fill_byte, 0))
+    fill_byte = struct.pack('B', fill_byte)
     while len(data) % args.page_size:
         data += fill_byte
 
