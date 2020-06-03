@@ -35,7 +35,6 @@ namespace qpsk
 enum Result
 {
     RESULT_NONE,
-    RESULT_PACKET,
     RESULT_END,
     RESULT_ERROR,
 };
@@ -114,9 +113,9 @@ public:
         return packet_.ExpectedCRC();
     }
 
-    qpsk::Error GetError(void)
+    Error GetError(void)
     {
-        return (state_ == STATE_ERROR) ? error_ : qpsk::ERROR_NONE;
+        return (state_ == STATE_ERROR) ? error_ : ERROR_NONE;
     }
 
     void Push(float sample)
@@ -129,7 +128,7 @@ public:
         if (samples_.Full())
         {
             state_ = STATE_ERROR;
-            error_ = qpsk::ERROR_OVERFLOW;
+            error_ = ERROR_OVERFLOW;
         }
         else
         {
@@ -158,7 +157,7 @@ public:
     using PageCallback = bool(uint32_t*);
     using PacketCallback = void(void);
 
-    qpsk::Error Receive(PageCallback page_cb,
+    Result Receive(PageCallback page_cb,
         PacketCallback packet_cb = nullptr, uint32_t timeout = 0)
     {
         uint32_t elapsed = 0;
@@ -171,8 +170,6 @@ public:
                 demodulator_.Process(sample);
                 elapsed++;
             }
-
-            bool done = false;
 
             while (demodulator_.SymbolsAvailable())
             {
@@ -211,7 +208,7 @@ public:
                                 if (page_cb && !page_cb(page_.data()))
                                 {
                                     state_ = STATE_ERROR;
-                                    error_ = qpsk::ERROR_PAGE_WRITE;
+                                    error_ = ERROR_PAGE_WRITE;
                                 }
                                 else
                                 {
@@ -224,39 +221,32 @@ public:
                         else
                         {
                             state_ = STATE_ERROR;
-                            error_ = qpsk::ERROR_CRC;
+                            error_ = ERROR_CRC;
                         }
                     }
                 }
                 else if (state_ == STATE_END)
                 {
-                    done = true;
-                    break;
+                    return RESULT_END;
                 }
                 else if (state_ == STATE_ERROR)
                 {
-                    done = true;
-                    break;
+                    return RESULT_ERROR;
                 }
             }
 
             if (abort_)
             {
                 state_ = STATE_ERROR;
-                error_ = qpsk::ERROR_ABORT;
-                done = true;
+                error_ = ERROR_ABORT;
+                return RESULT_ERROR;
             }
 
             if (timeout > 0 && elapsed >= timeout)
             {
                 state_ = STATE_ERROR;
-                error_ = qpsk::ERROR_TIMEOUT;
-                done = true;
-            }
-
-            if (done)
-            {
-                return GetError();
+                error_ = ERROR_TIMEOUT;
+                return RESULT_ERROR;
             }
         }
     }
@@ -319,7 +309,7 @@ protected:
     Fifo<uint8_t, 128> symbols_;
     Demodulator<samples_per_symbol, 128> demodulator_;
     State state_;
-    qpsk::Error error_;
+    Error error_;
     Packet<packet_size> packet_;
     Page<page_size> page_;
     uint32_t packet_count_;
@@ -332,7 +322,7 @@ protected:
     void RestartSync(void)
     {
         state_ = STATE_SYNCING;
-        error_ = qpsk::ERROR_NONE;
+        error_ = ERROR_NONE;
 
         expected_ = SymbolMask(4);
         sync_blank_size_ = 0;
@@ -345,7 +335,7 @@ protected:
         if (!(SymbolMask(symbol) & expected_))
         {
             state_ = STATE_ERROR;
-            error_ = qpsk::ERROR_SYNC;
+            error_ = ERROR_SYNC;
             return;
         }
 
