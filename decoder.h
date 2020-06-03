@@ -35,6 +35,8 @@ namespace qpsk
 enum Result
 {
     RESULT_NONE,
+    RESULT_PACKET_COMPLETE,
+    RESULT_PAGE_COMPLETE,
     RESULT_END,
     RESULT_ERROR,
 };
@@ -47,7 +49,6 @@ enum Error
     ERROR_OVERFLOW,
     ERROR_ABORT,
     ERROR_TIMEOUT,
-    ERROR_PAGE_WRITE,
 };
 
 template <uint32_t samples_per_symbol,
@@ -86,31 +87,6 @@ public:
     {
         enabled_ = false;
         abort_ = true;
-    }
-
-    void Resync(void)
-    {
-        enabled_ = false;
-
-        demodulator_.SyncCarrier(false);
-        RestartSync();
-
-        enabled_ = true;
-    }
-
-    uint8_t* GetPacket(void)
-    {
-        return packet_.data();
-    }
-
-    uint32_t CalculatedCRC(void)
-    {
-        return packet_.CalculatedCRC();
-    }
-
-    uint32_t ExpectedCRC(void)
-    {
-        return packet_.ExpectedCRC();
     }
 
     Error GetError(void)
@@ -154,22 +130,31 @@ public:
         return samples_.Full();
     }
 
-    using PageCallback = bool(uint32_t*);
-    using PacketCallback = void(void);
-
-    Result Receive(PageCallback page_cb,
-        PacketCallback packet_cb = nullptr, uint32_t timeout = 0)
+    uint32_t* GetPage(void)
     {
-        uint32_t elapsed = 0;
+        return page_.data();
+    }
 
-        for (;;)
+    Result Receive(void)
+    {
+        if (state_ == STATE_WRITING)
         {
-            while (samples_.Available() && demodulator_.SymbolsAvailable() < 1)
+            page_.Clear();
+            RestartSync();
+            demodulator_.SyncCarrier(false);
+            enabled_ = true;
+        }
+
+        while (samples_.Available())
+        {
+            if (abort_)
             {
-                float sample = samples_.Pop();
-                demodulator_.Process(sample);
-                elapsed++;
+                state_ = STATE_ERROR;
+                error_ = ERROR_ABORT;
+                return RESULT_ERROR;
             }
+
+            demodulator_.Process(samples_.Pop());
 
             while (demodulator_.SymbolsAvailable())
             {
@@ -191,31 +176,22 @@ public:
                     {
                         if (packet_.Valid())
                         {
+                            enabled_ = false;
+
                             packet_count_++;
-
-                            if (packet_cb)
-                            {
-                                packet_cb();
-                            }
-
-                            Realign();
                             page_.AppendPacket(packet_);
+
+                            RestartSync();
+                            demodulator_.SyncDecision();
 
                             if (page_.Complete())
                             {
-                                enabled_ = false;
-
-                                if (page_cb && !page_cb(page_.data()))
-                                {
-                                    state_ = STATE_ERROR;
-                                    error_ = ERROR_PAGE_WRITE;
-                                }
-                                else
-                                {
-                                    page_.Clear();
-                                    enabled_ = true;
-                                    Resync();
-                                }
+                                state_ = STATE_WRITING;
+                                return RESULT_PAGE_COMPLETE;
+                            }
+                            else
+                            {
+                                enabled_ = true;
                             }
                         }
                         else
@@ -223,6 +199,8 @@ public:
                             state_ = STATE_ERROR;
                             error_ = ERROR_CRC;
                         }
+
+                        return RESULT_PACKET_COMPLETE;
                     }
                 }
                 else if (state_ == STATE_END)
@@ -234,57 +212,22 @@ public:
                     return RESULT_ERROR;
                 }
             }
-
-            if (abort_)
-            {
-                state_ = STATE_ERROR;
-                error_ = ERROR_ABORT;
-                return RESULT_ERROR;
-            }
-
-            if (timeout > 0 && elapsed >= timeout)
-            {
-                state_ = STATE_ERROR;
-                error_ = ERROR_TIMEOUT;
-                return RESULT_ERROR;
-            }
         }
+
+        return RESULT_NONE;
     }
 
-    float PllPhase(void)
-    {
-        return demodulator_.PllPhase();
-    }
-
-    float PllPhaseIncrement(void)
-    {
-        return demodulator_.PllPhaseIncrement();
-    }
-
-    float DecisionPhase(void)
-    {
-        return demodulator_.DecisionPhase();
-    }
-
-    uint32_t SymbolsAvailable(void)
-    {
-        return symbols_.Available();
-    }
-
-    uint8_t PopSymbol(void)
-    {
-        return symbols_.Pop();
-    }
-
-    uint8_t ExpectedSymbolMask(void)
-    {
-        return expected_;
-    }
-
-    float SignalPower(void)
-    {
-        return demodulator_.SignalPower();
-    }
+    // Debugging accessors
+    uint8_t* GetPacket(void)         {return packet_.data();}
+    uint32_t CalculatedCRC(void)     {return packet_.CalculatedCRC();}
+    uint32_t ExpectedCRC(void)       {return packet_.ExpectedCRC();}
+    float PllPhase(void)             {return demodulator_.PllPhase();}
+    float PllPhaseIncrement(void)    {return demodulator_.PllPhaseIncrement();}
+    float DecisionPhase(void)        {return demodulator_.DecisionPhase();}
+    uint32_t SymbolsAvailable(void)  {return symbols_.Available();}
+    uint8_t PopSymbol(void)          {return symbols_.Pop();}
+    uint8_t ExpectedSymbolMask(void) {return expected_;}
+    float SignalPower(void)          {return demodulator_.SignalPower();}
 
 protected:
     static constexpr uint32_t kPreambleSize = 16;
@@ -301,6 +244,7 @@ protected:
     {
         STATE_SYNCING,
         STATE_DECODING,
+        STATE_WRITING,
         STATE_END,
         STATE_ERROR,
     };
@@ -380,16 +324,6 @@ protected:
         {
             state_ = STATE_SYNCING;
         }
-    }
-
-    void Realign(void)
-    {
-        enabled_ = false;
-
-        RestartSync();
-        demodulator_.SyncDecision();
-
-        enabled_ = true;
     }
 };
 
