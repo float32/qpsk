@@ -29,10 +29,6 @@
 namespace qpsk
 {
 
-// If using Sum() or Average() with floating point types, instances of these
-// classes should be periodically reinitialized to avoid buildup of rounding
-// errors.
-
 template <typename T, uint32_t length_>
 class Window
 {
@@ -40,17 +36,34 @@ protected:
     static constexpr uint32_t kLengthBits = std::ceil(std::log2(length_));
     DelayLine<T, (1 << kLengthBits)> delay_line_;
     T sum_;
+    T refresh_;
+    uint32_t age_;
 
 public:
     void Init(void)
     {
         delay_line_.Init(0);
         sum_ = 0;
+        refresh_ = 0;
+        age_ = 0;
     }
 
     void Write(T in)
     {
-        sum_ += in - delay_line_.Tap(length_ - 1);
+        refresh_ += in;
+        age_++;
+
+        if (age_ < length_)
+        {
+            sum_ += in - delay_line_.Tap(length_ - 1);
+        }
+        else
+        {
+            sum_ = refresh_;
+            refresh_ = 0;
+            age_ = 0;
+        }
+
         delay_line_.Process(in);
     }
 
@@ -95,7 +108,7 @@ public:
 
     void Write(T in)
     {
-        sum_ += in;
+        sum_ = 0;
         T out;
 
         for (uint32_t i = 0; i < width_; i++)
@@ -103,9 +116,8 @@ public:
             out = window_[i][length_ - 1];
             window_[i].Write(in);
             in = out;
+            sum_ += window_[i].Sum();
         }
-
-        sum_ -= out;
     }
 
     Window<T, length_>& operator[](uint32_t i)
