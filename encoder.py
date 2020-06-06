@@ -51,6 +51,7 @@ class QPSKEncoder():
                 page_size, packet_size, crc_seed, page_write_time):
         assert (sample_rate % symbol_rate) == 0
         assert (page_size % packet_size) == 0
+        assert (packet_size % 4) == 0
 
         self._sample_rate = sample_rate
         self._symbol_rate = symbol_rate
@@ -138,7 +139,7 @@ def main():
     parser.add_argument('-p', '--packet-size', dest='packet_size',
         type=int,
         default=256,
-        help='Packet size in bytes, default 256')
+        help='Packet size in bytes, default 256 (must be a multiple of 4)')
     parser.add_argument('-f', '--page-size', dest='page_size',
         type=int,
         required=True,
