@@ -228,6 +228,10 @@ public:
     uint8_t PopSymbol(void)          {return symbols_.Pop();}
     uint8_t ExpectedSymbolMask(void) {return expected_;}
     float SignalPower(void)          {return demodulator_.SignalPower();}
+    uint32_t SamplesPerSymbol(void)  {return samples_per_symbol;}
+    uint32_t PacketSize(void)        {return packet_size;}
+    uint32_t PageSize(void)          {return page_size;}
+    uint32_t FifoCapacity(void)      {return fifo_capacity;}
 
 protected:
     static constexpr uint32_t kPreambleSize = 16;
