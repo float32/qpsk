@@ -33,34 +33,34 @@ template <uint32_t symbol_duration>
 class CarrierRejectionFilter
 {
 protected:
+    struct Biquad
+    {
+        float b[3];
+        float a[2];
+    };
+
     /* [[[cog
 
     import scipy.signal
 
-    def FloatTable(table):
-        for i in range(0, len(table), 4):
-            line = ''
-            for j in range(i, min(len(table), i + 4)):
-                line += '{0: .8e},'.format(table[j]).ljust(17)
-            yield line.rstrip(' ')
-
-    kernel_length = 7
     symbol_durations = (6, 8, 12, 16)
-
-    cog.outl('static constexpr uint32_t kKernelLength = {0};'
-        .format(kernel_length))
+    rp = 1
+    rs = 18
 
     for symbol_duration in symbol_durations:
-        cog.outl('static constexpr float kKernel{0:02}[{1}] ='
-            .format(symbol_duration, kernel_length))
+        wp = 2 / symbol_duration
+        ws = 2 * wp
+        b, a = scipy.signal.ellip(2, rp, rs, wp, output='ba')
 
-        freq = 1 / symbol_duration
-        kernel = list(scipy.signal.remez(kernel_length,
-            [0, freq, freq * 2, 0.5], [1, 0]))
+        cog.outl('static constexpr Biquad kBiquad{0:02} ='
+            .format(symbol_duration))
 
         cog.outl('{')
-        for line in FloatTable(kernel):
-            cog.outl('    ' + line)
+        print_coeff = lambda c: '{: .8e},'.format(c).ljust(17)
+        b = ''.join([print_coeff(c) for c in b])
+        a = ''.join([print_coeff(c) for c in a[1:]])
+        cog.outl('    { ' + b + ' },')
+        cog.outl('    { ' + a + ' },')
         cog.outl('};')
 
     cog.outl('')
@@ -72,33 +72,32 @@ protected:
 
     cog.outl('')
 
-    cog.outl('static constexpr const float* kKernel =')
+    cog.outl('static constexpr const Biquad* kBiquad =')
     for duration in symbol_durations:
-        cog.outl('    symbol_duration == {0:>2} ? kKernel{0:02} :'
+        cog.outl('    symbol_duration == {0:>2} ? &kBiquad{0:02} :'
             .format(duration))
     cog.outl('                            nullptr;')
 
     ]]] */
-    static constexpr uint32_t kKernelLength = 7;
-    static constexpr float kKernel06[7] =
+    static constexpr Biquad kBiquad06 =
     {
-        -7.61504431e-02,  4.23661388e-05,  3.04728871e-01,  5.00042366e-01,
-         3.04728871e-01,  4.23661388e-05, -7.61504431e-02,
+        {  2.39359876e-01,  2.23228723e-01,  2.39359876e-01,  },
+        { -6.20855598e-01,  4.08454741e-01,  },
     };
-    static constexpr float kKernel08[7] =
+    static constexpr Biquad kBiquad08 =
     {
-        -4.62606751e-02,  1.25000000e-01,  2.96260675e-01,  3.82800831e-01,
-         2.96260675e-01,  1.25000000e-01, -4.62606751e-02,
+        {  1.87847557e-01,  6.44525698e-02,  1.87847557e-01,  },
+        { -9.89139413e-01,  4.82993238e-01,  },
     };
-    static constexpr float kKernel12[7] =
+    static constexpr Biquad kBiquad12 =
     {
-         4.06822339e-02,  2.09317766e-01,  2.09317766e-01,  2.54748848e-01,
-         2.09317766e-01,  2.09317766e-01,  4.06822339e-02,
+        {  1.47991307e-01, -7.59076793e-02,  1.47991307e-01,  },
+        { -1.35345827e+00,  6.00386413e-01,  },
     };
-    static constexpr float kKernel16[7] =
+    static constexpr Biquad kBiquad16 =
     {
-         1.56977082e-01,  1.37855092e-01,  1.68060009e-01,  1.79345186e-01,
-         1.68060009e-01,  1.37855092e-01,  1.56977082e-01,
+        {  1.33896140e-01, -1.36081787e-01,  1.33896140e-01,  },
+        { -1.53005166e+00,  6.77833259e-01,  },
     };
 
     static_assert(
@@ -108,41 +107,55 @@ protected:
         symbol_duration == 16 ||
         false, "Unsupported symbol duration");
 
-    static constexpr const float* kKernel =
-        symbol_duration ==  6 ? kKernel06 :
-        symbol_duration ==  8 ? kKernel08 :
-        symbol_duration == 12 ? kKernel12 :
-        symbol_duration == 16 ? kKernel16 :
+    static constexpr const Biquad* kBiquad =
+        symbol_duration ==  6 ? &kBiquad06 :
+        symbol_duration ==  8 ? &kBiquad08 :
+        symbol_duration == 12 ? &kBiquad12 :
+        symbol_duration == 16 ? &kBiquad16 :
                                 nullptr;
     // [[[end]]]
 
-    Window<float, kKernelLength> window_;
-    float output_;
+    float x_[3];
+    float y_[2];
 
 public:
     void Init(void)
     {
-        window_.Init();
-        output_ = 0.f;
+        x_[0] = 0.f;
+        x_[1] = 0.f;
+        x_[2] = 0.f;
+        y_[0] = 0.f;
+        y_[1] = 0.f;
     }
 
     float Process(float in)
     {
-        window_.Write(in);
+        // Shift x state
+        x_[2] = x_[1];
+        x_[1] = x_[0];
+        x_[0] = in;
 
-        output_ = 0.f;
+        float out = 0.f;
 
-        for (uint32_t i = 0; i < kKernelLength; i++)
-        {
-            output_ += window_[i] * kKernel[i];
-        }
+        // Add x state
+        out += kBiquad->b[0] * x_[0];
+        out += kBiquad->b[1] * x_[1];
+        out += kBiquad->b[2] * x_[2];
 
-        return output_;
+        // Subtract y state
+        out -= kBiquad->a[0] * y_[0];
+        out -= kBiquad->a[1] * y_[1];
+
+        // Shift y state
+        y_[1] = y_[0];
+        y_[0] = out;
+
+        return out;
     }
 
     float output(void)
     {
-        return output_;
+        return y_[0];
     }
 };
 
