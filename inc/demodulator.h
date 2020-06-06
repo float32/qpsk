@@ -90,6 +90,8 @@ public:
         }
 
         pll_.Sync();
+        q_history_.Init();
+        i_history_.Init();
     }
 
     void SyncDecision(void)
