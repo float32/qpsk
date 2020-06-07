@@ -56,6 +56,11 @@ public:
         correlator_.Init();
 
         Reset();
+
+        last_symbol_ = 0;
+        early_ = false;
+        late_ = false;
+        decide_ = false;
     }
 
     uint32_t SymbolsAvailable(void)
@@ -148,9 +153,20 @@ public:
         }
     }
 
+    // Accessors for debug and simulation
+    uint32_t state(void)
+    {
+        return state_;
+    }
+
     float PllPhase(void)
     {
         return pll_.Phase();
+    }
+
+    float PllPhaseError(void)
+    {
+        return pll_.PhaseError();
     }
 
     float PllPhaseIncrement(void)
@@ -166,6 +182,41 @@ public:
     float SignalPower(void)
     {
         return follower_.Output();
+    }
+
+    float RecoveredI(void)
+    {
+        return crf_i_.output();
+    }
+
+    float RecoveredQ(void)
+    {
+        return crf_q_.output();
+    }
+
+    float Correlation(void)
+    {
+        return correlator_.output();
+    }
+
+    uint8_t LastSymbol(void)
+    {
+        return last_symbol_;
+    }
+
+    bool Early(void)
+    {
+        return early_;
+    }
+
+    bool Late(void)
+    {
+        return late_;
+    }
+
+    bool Decide(void)
+    {
+        return decide_;
     }
 
 protected:
@@ -205,6 +256,11 @@ protected:
     bool inhibit_decision_;
     uint32_t skipped_samples_;
     uint32_t skipped_symbols_;
+
+    uint8_t last_symbol_;
+    bool early_;
+    bool late_;
+    bool decide_;
 
     void Reset(void)
     {
@@ -270,6 +326,8 @@ protected:
                      (phase >= decision_phase_);
         }
 
+        decide_ = decide;
+
         if (decide)
         {
             // In carrier sync mode, we just let the PLL stabilize until we
@@ -292,10 +350,12 @@ protected:
 
             case STATE_DECISION_SYNC:
                 symbols_.Push(4);
+                last_symbol_ = 4;
                 break;
 
             case STATE_OK:
-                symbols_.Push(DecideSymbol(true));
+                last_symbol_ = DecideSymbol(true);
+                symbols_.Push(last_symbol_);
                 break;
 
             case STATE_WAIT_TO_SETTLE:
@@ -374,6 +434,9 @@ protected:
                 q_sum = q_sum_early;
                 i_sum = i_sum_early;
             }
+
+            early_ = (early_strength > threshold);
+            late_ = (late_strength > threshold);
         }
         else
         {

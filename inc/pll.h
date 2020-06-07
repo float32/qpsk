@@ -71,6 +71,11 @@ public:
         return phase_increment_;
     }
 
+    float PhaseError(void)
+    {
+        return phase_error_;
+    }
+
     float Process(float error)
     {
         phase_error_ = lpf_.Process(error);

@@ -217,17 +217,29 @@ public:
         return RESULT_NONE;
     }
 
-    // Debugging accessors
+    // Accessors for debug and simulation
     uint8_t* GetPacket(void)         {return packet_.data();}
     uint32_t CalculatedCRC(void)     {return packet_.CalculatedCRC();}
     uint32_t ExpectedCRC(void)       {return packet_.ExpectedCRC();}
+    uint8_t PacketByte(void)         {return packet_.last_byte();}
     float PllPhase(void)             {return demodulator_.PllPhase();}
+    float PllPhaseError(void)        {return demodulator_.PllPhaseError();}
     float PllPhaseIncrement(void)    {return demodulator_.PllPhaseIncrement();}
     float DecisionPhase(void)        {return demodulator_.DecisionPhase();}
     uint32_t SymbolsAvailable(void)  {return symbols_.Available();}
     uint8_t PopSymbol(void)          {return symbols_.Pop();}
     uint8_t ExpectedSymbolMask(void) {return expected_;}
     float SignalPower(void)          {return demodulator_.SignalPower();}
+    uint32_t state(void)             {return state_;}
+    float RecoveredI(void)           {return demodulator_.RecoveredI();}
+    float RecoveredQ(void)           {return demodulator_.RecoveredQ();}
+    float Correlation(void)          {return demodulator_.Correlation();}
+    uint32_t DemodulatorState(void)  {return demodulator_.state();}
+    uint8_t LastSymbol(void)         {return demodulator_.LastSymbol();}
+    bool    Early(void)              {return demodulator_.Early();}
+    bool    Late(void)               {return demodulator_.Late();}
+    bool    Decide(void)             {return demodulator_.Decide();}
+
 
 protected:
     static constexpr uint32_t kPreambleSize = 16;

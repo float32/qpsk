@@ -120,6 +120,11 @@ public:
     {
         return packet_.packet.data;
     }
+
+    uint8_t last_byte(void)
+    {
+        return size_ ? packet_.bytes[size_ - 1] : 0;
+    }
 };
 
 template <uint32_t page_size>
