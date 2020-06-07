@@ -118,25 +118,32 @@ protected:
     // [[[end]]]
 
     Window<float, kKernelLength> window_;
+    float output_;
 
 public:
     void Init(void)
     {
         window_.Init();
+        output_ = 0.f;
     }
 
     float Process(float in)
     {
         window_.Write(in);
 
-        float sum = 0;
+        output_ = 0.f;
 
         for (uint32_t i = 0; i < kKernelLength; i++)
         {
-            sum += window_[i] * kKernel[i];
+            output_ += window_[i] * kKernel[i];
         }
 
-        return sum;
+        return output_;
+    }
+
+    float output(void)
+    {
+        return output_;
     }
 };
 

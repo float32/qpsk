@@ -39,6 +39,7 @@ protected:
     Window<float, 3> history_;
     uint32_t age_;
     float maximum_;
+    float correlation_;
 
 public:
     void Init(void)
@@ -51,12 +52,13 @@ public:
         history_.Init();
         age_ = 0;
         maximum_ = 0.f;
+        correlation_ = 0.f;
     }
 
     template <class bay>
     bool Process(bay& i_history, bay& q_history)
     {
-        float correlation = 0.f;
+        correlation_ = 0.f;
 
         for (uint32_t i = 0; i < kLength; i++)
         {
@@ -67,22 +69,22 @@ public:
             float i_sum = i_history[i].Sum();
             float q_sum = q_history[i].Sum();
 
-            correlation += expected_i ? i_sum : -i_sum;
-            correlation += expected_q ? q_sum : -q_sum;
+            correlation_ += expected_i ? i_sum : -i_sum;
+            correlation_ += expected_q ? q_sum : -q_sum;
         }
 
-        if (correlation < 0.f)
+        if (correlation_ < 0.f)
         {
             // Reset the peak detector at each valley in the detection function,
             // so that we can detect several consecutive peaks.
             maximum_ = 0.f;
         }
-        else if (correlation > maximum_)
+        else if (correlation_ > maximum_)
         {
-            maximum_ = correlation;
+            maximum_ = correlation_;
         }
 
-        history_.Write(correlation);
+        history_.Write(correlation_);
         age_++;
 
         // Detect a local maximum in the output of the correlator.
@@ -103,6 +105,11 @@ public:
     static constexpr uint32_t length(void)
     {
         return kLength;
+    }
+
+    float output(void)
+    {
+        return correlation_;
     }
 };
 

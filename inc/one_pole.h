@@ -68,11 +68,24 @@ class OnePoleHighpass : public OnePoleLowpass
 {
 protected:
     using super = OnePoleLowpass;
+    float output_;
 
 public:
+    void Init(float normalized_frequency)
+    {
+        super::Init(normalized_frequency);
+        output_ = 0.f;
+    }
+
     float Process(float in)
     {
-        return in - super::Process(in);
+        output_ = in - super::Process(in);
+        return output_;
+    }
+
+    float Output(void)
+    {
+        return output_;
     }
 };
 
