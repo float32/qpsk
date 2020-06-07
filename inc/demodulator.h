@@ -139,7 +139,7 @@ public:
             }
             else if (level > kLevelThreshold)
             {
-                agc_gain_ = 0.71f / level;
+                agc_gain_ = 0.64f / level;
                 state_ = STATE_CARRIER_SYNC;
             }
             else
