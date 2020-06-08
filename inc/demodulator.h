@@ -63,19 +63,9 @@ public:
         decide_ = false;
     }
 
-    uint32_t SymbolsAvailable(void)
+    bool PopSymbol(uint8_t& symbol)
     {
-        return symbols_.Available();
-    }
-
-    uint32_t SymbolsFull(void)
-    {
-        return symbols_.Full();
-    }
-
-    uint8_t PopSymbol(void)
-    {
-        return symbols_.Pop();
+        return symbols_.Pop(symbol);
     }
 
     void SyncCarrier(bool discover)

@@ -70,25 +70,48 @@ public:
         return tail - head == size;
     }
 
-    void Push(T item)
+    bool Push(T item)
     {
         uint32_t tail = tail_.load(std::memory_order_relaxed);
+        uint32_t head = head_.load(std::memory_order_acquire);
+
+        if (tail - head > size - 1)
+        {
+            return false;
+        }
+
         data_[tail % size] = item;
         tail_.store(tail + 1, std::memory_order_release);
+        return true;
     }
 
-    T Peek(void)
+    bool Peek(T& item)
     {
         uint32_t head = head_.load(std::memory_order_relaxed);
-        return data_[head % size];
+        uint32_t tail = tail_.load(std::memory_order_acquire);
+
+        if (tail - head < 1)
+        {
+            return false;
+        }
+
+        item = data_[head % size];
+        return true;
     }
 
-    T Pop(void)
+    bool Pop(T& item)
     {
         uint32_t head = head_.load(std::memory_order_relaxed);
-        T item = data_[head % size];
+        uint32_t tail = tail_.load(std::memory_order_acquire);
+
+        if (tail - head < 1)
+        {
+            return false;
+        }
+
+        item = data_[head % size];
         head_.store(head + 1, std::memory_order_release);
-        return item;
+        return true;
     }
 };
 

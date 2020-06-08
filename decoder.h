@@ -101,14 +101,10 @@ public:
             return;
         }
 
-        if (samples_.Full())
+        if (!samples_.Push(sample))
         {
             state_ = STATE_ERROR;
             error_ = ERROR_OVERFLOW;
-        }
-        else
-        {
-            samples_.Push(sample);
         }
     }
 
@@ -123,11 +119,6 @@ public:
         {
             Push(buffer[i]);
         }
-    }
-
-    bool Full(void)
-    {
-        return samples_.Full();
     }
 
     uint32_t* GetPage(void)
@@ -145,7 +136,8 @@ public:
             enabled_ = true;
         }
 
-        while (samples_.Available())
+        float sample;
+        while (samples_.Pop(sample))
         {
             if (abort_)
             {
@@ -154,14 +146,14 @@ public:
                 return RESULT_ERROR;
             }
 
-            demodulator_.Process(samples_.Pop());
+            demodulator_.Process(sample);
+            uint8_t symbol;
 
-            while (demodulator_.SymbolsAvailable())
+            while (demodulator_.PopSymbol(symbol))
             {
-                uint8_t symbol = demodulator_.PopSymbol();
-
                 // This fifo has no purpose except debugging
-                if (symbols_.Full()) symbols_.Pop();
+                uint8_t overwritten;
+                if (symbols_.Full()) symbols_.Pop(overwritten);
                 symbols_.Push(symbol);
 
                 if (state_ == STATE_SYNCING)
@@ -227,7 +219,7 @@ public:
     float PllPhaseIncrement(void)    {return demodulator_.PllPhaseIncrement();}
     float DecisionPhase(void)        {return demodulator_.DecisionPhase();}
     uint32_t SymbolsAvailable(void)  {return symbols_.Available();}
-    uint8_t PopSymbol(void)          {return symbols_.Pop();}
+    bool PopSymbol(uint8_t& symbol)  {return symbols_.Pop(symbol);}
     uint8_t ExpectedSymbolMask(void) {return expected_;}
     float SignalPower(void)          {return demodulator_.SignalPower();}
     uint32_t state(void)             {return state_;}
