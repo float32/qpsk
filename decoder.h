@@ -69,8 +69,6 @@ public:
 
     void Reset(void)
     {
-        enabled_ = false;
-
         demodulator_.SyncCarrier(true);
         RestartSync();
         packet_count_ = 0;
@@ -80,12 +78,10 @@ public:
         page_.Clear();
 
         abort_ = false;
-        enabled_ = true;
     }
 
     void Abort(void)
     {
-        enabled_ = false;
         abort_ = true;
     }
 
@@ -96,25 +92,17 @@ public:
 
     void Push(float sample)
     {
-        if (!enabled_)
-        {
-            return;
-        }
-
-        if (!samples_.Push(sample))
+        if (samples_.Full() && state_ != STATE_WRITING)
         {
             state_ = STATE_ERROR;
             error_ = ERROR_OVERFLOW;
         }
+
+        samples_.Push(sample);
     }
 
     void Push(float *buffer, uint32_t length)
     {
-        if (!enabled_)
-        {
-            return;
-        }
-
         for (uint32_t i = 0; i < length; i++)
         {
             Push(buffer[i]);
@@ -133,7 +121,6 @@ public:
             page_.Clear();
             RestartSync();
             demodulator_.SyncCarrier(false);
-            enabled_ = true;
         }
 
         float sample;
@@ -165,8 +152,6 @@ public:
                     {
                         if (packet_.Valid())
                         {
-                            enabled_ = false;
-
                             packet_count_++;
                             page_.AppendPacket(packet_);
 
@@ -177,10 +162,6 @@ public:
                             {
                                 state_ = STATE_WRITING;
                                 return RESULT_PAGE_COMPLETE;
-                            }
-                            else
-                            {
-                                enabled_ = true;
                             }
                         }
                         else
@@ -250,7 +231,7 @@ protected:
         STATE_ERROR,
     };
 
-    Fifo<float, fifo_capacity> samples_;
+    RingBuffer<float, fifo_capacity> samples_;
     RingBuffer<uint8_t, 128> recent_symbols_; // For debug
     Demodulator<samples_per_symbol, 128> demodulator_;
     State state_;
@@ -261,7 +242,6 @@ protected:
     uint32_t sync_blank_size_;
     uint32_t preamble_remaining_size_;
     uint8_t expected_;
-    bool enabled_;
     bool abort_;
 
     void RestartSync(void)
