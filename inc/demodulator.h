@@ -57,7 +57,6 @@ public:
 
         Reset();
 
-        last_symbol_ = 0;
         early_ = false;
         late_ = false;
         decide_ = false;
@@ -189,11 +188,6 @@ public:
         return correlator_.output();
     }
 
-    uint8_t LastSymbol(void)
-    {
-        return last_symbol_;
-    }
-
     bool Early(void)
     {
         return early_;
@@ -247,7 +241,6 @@ protected:
     uint32_t skipped_samples_;
     uint32_t skipped_symbols_;
 
-    uint8_t last_symbol_;
     bool early_;
     bool late_;
     bool decide_;
@@ -340,12 +333,10 @@ protected:
 
             case STATE_DECISION_SYNC:
                 symbols_.Push(4);
-                last_symbol_ = 4;
                 break;
 
             case STATE_OK:
-                last_symbol_ = DecideSymbol(true);
-                symbols_.Push(last_symbol_);
+                symbols_.Push(DecideSymbol(true));
                 break;
 
             case STATE_WAIT_TO_SETTLE:
