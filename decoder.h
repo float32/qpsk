@@ -63,7 +63,7 @@ public:
         demodulator_.Init();
         packet_.Init(crc_seed);
         page_.Init();
-        symbols_.Init();
+        recent_symbols_.Init();
         Reset();
     }
 
@@ -151,10 +151,7 @@ public:
 
             while (demodulator_.PopSymbol(symbol))
             {
-                // This fifo has no purpose except debugging
-                uint8_t overwritten;
-                if (symbols_.Full()) symbols_.Pop(overwritten);
-                symbols_.Push(symbol);
+                recent_symbols_.Push(symbol);
 
                 if (state_ == STATE_SYNCING)
                 {
@@ -218,8 +215,8 @@ public:
     float PllPhaseError(void)        {return demodulator_.PllPhaseError();}
     float PllPhaseIncrement(void)    {return demodulator_.PllPhaseIncrement();}
     float DecisionPhase(void)        {return demodulator_.DecisionPhase();}
-    uint32_t SymbolsAvailable(void)  {return symbols_.Available();}
-    bool PopSymbol(uint8_t& symbol)  {return symbols_.Pop(symbol);}
+    uint32_t SymbolsAvailable(void)  {return recent_symbols_.Available();}
+    bool PopSymbol(uint8_t& symbol)  {return recent_symbols_.Pop(symbol);}
     uint8_t ExpectedSymbolMask(void) {return expected_;}
     float SignalPower(void)          {return demodulator_.SignalPower();}
     uint32_t state(void)             {return state_;}
@@ -254,7 +251,7 @@ protected:
     };
 
     Fifo<float, fifo_capacity> samples_;
-    Fifo<uint8_t, 128> symbols_;
+    RingBuffer<uint8_t, 128> recent_symbols_; // For debug
     Demodulator<samples_per_symbol, 128> demodulator_;
     State state_;
     Error error_;

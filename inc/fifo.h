@@ -67,7 +67,7 @@ public:
     {
         uint32_t tail = tail_.load(std::memory_order_relaxed);
         uint32_t head = head_.load(std::memory_order_acquire);
-        return tail - head == size;
+        return tail - head >= size;
     }
 
     bool Push(T item)
@@ -112,6 +112,82 @@ public:
         item = data_[head % size];
         head_.store(head + 1, std::memory_order_release);
         return true;
+    }
+
+    bool Pop(void)
+    {
+        T item;
+        return Pop(item);
+    }
+};
+
+template<typename T, uint32_t size>
+class RingBuffer : public Fifo<T, size>
+{
+protected:
+    using super = Fifo<T, size>;
+
+public:
+    bool Empty(void)
+    {
+        return !Available();
+    }
+
+    uint32_t Available(void)
+    {
+        uint32_t available = super::Available();
+        return (available < size) ? available : size;
+    }
+
+    bool Push(T item)
+    {
+        uint32_t tail = super::tail_.load(std::memory_order_relaxed);
+        super::data_[tail % size] = item;
+        super::tail_.store(tail + 1, std::memory_order_release);
+        return true;
+    }
+
+    bool Peek(T& item)
+    {
+        uint32_t head = super::head_.load(std::memory_order_relaxed);
+        uint32_t tail = super::tail_.load(std::memory_order_acquire);
+
+        if (tail - head < 1)
+        {
+            return false;
+        }
+        else if (tail - head > size)
+        {
+            head = tail - size;
+        }
+
+        item = super::data_[head % size];
+        return true;
+    }
+
+    bool Pop(T& item)
+    {
+        uint32_t head = super::head_.load(std::memory_order_relaxed);
+        uint32_t tail = super::tail_.load(std::memory_order_acquire);
+
+        if (tail - head < 1)
+        {
+            return false;
+        }
+        else if (tail - head > size)
+        {
+            head = tail - size;
+        }
+
+        item = super::data_[head % size];
+        super::head_.store(head + 1, std::memory_order_release);
+        return true;
+    }
+
+    bool Pop(void)
+    {
+        T item;
+        return Pop(item);
     }
 };
 
