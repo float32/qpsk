@@ -24,6 +24,7 @@
 #define QPSK_FIFO_H_
 
 #include <cstdint>
+#include <atomic>
 
 namespace qpsk
 {
@@ -32,59 +33,61 @@ template<typename T, uint32_t size>
 class Fifo
 {
 protected:
-    T buffer_[size];
-    uint32_t head_;
-    uint32_t tail_;
-    uint32_t pushed_;
-    uint32_t popped_;
+    static_assert((size & (size - 1)) == 0, "size must be a power of 2");
+    std::atomic<uint32_t> head_;
+    std::atomic<uint32_t> tail_;
+    T data_[size];
 
 public:
     void Init(void)
     {
-        Flush();
+        head_.store(0, std::memory_order_relaxed);
+        tail_.store(0, std::memory_order_relaxed);
     }
 
     void Flush(void)
     {
-        head_ = 0;
-        tail_ = 0;
-        pushed_ = 0;
-        popped_ = 0;
+        uint32_t tail = tail_.load(std::memory_order_acquire);
+        head_.store(tail, std::memory_order_release);
     }
 
     bool Empty(void)
     {
-        return (pushed_ == popped_);
+        return !Available();
     }
 
     uint32_t Available(void)
     {
-        return (pushed_ - popped_);
+        uint32_t head = head_.load(std::memory_order_relaxed);
+        uint32_t tail = tail_.load(std::memory_order_acquire);
+        return tail - head;
     }
 
     bool Full(void)
     {
-        return (Available() == size);
+        uint32_t tail = tail_.load(std::memory_order_relaxed);
+        uint32_t head = head_.load(std::memory_order_acquire);
+        return tail - head == size;
     }
 
     void Push(T item)
     {
-        buffer_[tail_] = item;
-        tail_ = (tail_ + 1) % size;
-        pushed_++;
+        uint32_t tail = tail_.load(std::memory_order_relaxed);
+        data_[tail % size] = item;
+        tail_.store(tail + 1, std::memory_order_release);
     }
 
     T Peek(void)
     {
-        return buffer_[head_];
+        uint32_t head = head_.load(std::memory_order_relaxed);
+        return data_[head % size];
     }
 
     T Pop(void)
     {
-        T item = buffer_[head_];
-        head_ = (head_ + 1) % size;
-        popped_++;
-
+        uint32_t head = head_.load(std::memory_order_relaxed);
+        T item = data_[head % size];
+        head_.store(head + 1, std::memory_order_release);
         return item;
     }
 };
