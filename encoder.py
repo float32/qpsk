@@ -65,9 +65,9 @@ class QPSKEncoder():
         self._page_write_time = page_write_time
 
         self._signal = array.array('h')
-        self._symbol_lookup = self._generate_symbols()
+        self._symbol_lookup = self._construct_symbols()
 
-    def _generate_symbols(self):
+    def _construct_symbols(self):
         lookup = list()
         for symbol in range(4):
             msb = (symbol & 2) - 1
@@ -131,15 +131,15 @@ def main():
     parser.add_argument('-s', '--sample-rate', dest='sample_rate',
         type=int,
         required=True,
-        help='Sample rate in Hz (must be a multiple of the carrier frequency')
-    parser.add_argument('-c', '--carrier-frequency', dest='carrier_frequency',
+        help='Sample rate in Hz (must be a multiple of the symbol rate).')
+    parser.add_argument('-c', '-y', '--carrier-frequency', '--symbol-rate',
+        dest='symbol_rate',
         type=int,
         required=True,
-        help='Carrier frequency in Hz')
+        help='Symbol rate in Hz.')
     parser.add_argument('-p', '--packet-size', dest='packet_size',
-        type=int,
-        default=256,
-        help='Packet size in bytes, default 256 (must be a multiple of 4)')
+        default='256',
+        help='Packet size in bytes, default 256 (must be a multiple of 4).')
     parser.add_argument('-f', '--page-size', dest='page_size',
         type=int,
         required=True,
@@ -149,27 +149,26 @@ def main():
         help='Flash page write time in seconds')
     parser.add_argument('-x', '--offset', dest='file_offset',
         default='0',
-        help='Ignore hex file contents before this location')
+        help='Ignore hex file contents before this location.')
     parser.add_argument('-b', '--base', dest='file_base',
         default='0',
-        help='Offset is relative to this address')
+        help='FILE_OFFSET is relative to this address.')
     parser.add_argument('-e', '--seed', dest='crc_seed',
         default='0',
-        help='CRC32 seed, default 0')
+        help='CRC32 seed, default 0.')
     parser.add_argument('-t', '--file-type', dest='file_type',
-            choices=['hex', 'bin', 'auto'], default='auto',
-            help='Input file type, default auto')
+        choices=['hex', 'bin', 'auto'], default='auto',
+        help='Input file type, default auto.')
     parser.add_argument('--fill', dest='fill_byte',
         default='0xFF',
-        help='Fill/pad byte (default 0xFF)')
-    parser.add_argument('-o', '--output-file', dest='output_file',
-        default=None,
-        help='Output wav file, default derived from input file name if given'
-        ', else stdout',
-        metavar='FILE')
+        help='Fill/pad byte (default 0xFF).')
     parser.add_argument('-i', '--input-file', dest='input_file',
         default='-',
-        help='Input file (bin or hex), default stdin')
+        help='Input file (bin or hex), default stdin.')
+    parser.add_argument('-o', '--output-file', dest='output_file',
+        default=None,
+        help='Output wav file, default derived from input file name if given, '
+            'else stdout.')
     args = parser.parse_args()
 
     fill_byte = int(args.fill_byte, 0)
@@ -208,10 +207,10 @@ def main():
 
     encoder = QPSKEncoder(
             sample_rate = args.sample_rate,
-            symbol_rate = args.carrier_frequency,
+            symbol_rate = args.symbol_rate,
             page_size   = args.page_size,
-            packet_size = args.packet_size,
             crc_seed    = int(args.crc_seed, 0),
+            packet_size = int(args.packet_size, 0),
             page_write_time = float(args.page_write_time))
 
     fill_byte = struct.pack('B', fill_byte)
