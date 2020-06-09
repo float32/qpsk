@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_ONE_POLE_H_
-#define QPSK_ONE_POLE_H_
+#pragma once
 
 #include <cstdint>
 #include <cmath>
@@ -90,5 +89,3 @@ public:
 };
 
 }
-
-#endif

@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_CORRELATOR_H_
-#define QPSK_CORRELATOR_H_
+#pragma once
 
 #include <cstdint>
 #include "window.h"
@@ -114,5 +113,3 @@ public:
 };
 
 }
-
-#endif

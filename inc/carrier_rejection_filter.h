@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_CARRIER_REJECTION_FILTER_H_
-#define QPSK_CARRIER_REJECTION_FILTER_H_
+#pragma once
 
 #include <cstdint>
 #include "window.h"
@@ -148,5 +147,3 @@ public:
 };
 
 }
-
-#endif

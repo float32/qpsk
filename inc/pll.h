@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_PLL_H_
-#define QPSK_PLL_H_
+#pragma once
 
 #include <cstdint>
 #include "one_pole.h"
@@ -90,5 +89,3 @@ public:
 };
 
 }
-
-#endif

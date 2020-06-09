@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_DEMODULATOR_H_
-#define QPSK_DEMODULATOR_H_
+#pragma once
 
 #include <cstdint>
 #include "carrier_rejection_filter.h"
@@ -430,5 +429,3 @@ protected:
 };
 
 }
-
-#endif

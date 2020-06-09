@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_FIFO_H_
-#define QPSK_FIFO_H_
+#pragma once
 
 #include <cstdint>
 #include <atomic>
@@ -192,5 +191,3 @@ public:
 };
 
 }
-
-#endif

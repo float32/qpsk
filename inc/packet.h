@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_PACKET_H_
-#define QPSK_PACKET_H_
+#pragma once
 
 #include <cstdint>
 #include <cstring>
@@ -167,5 +166,3 @@ public:
 };
 
 }
-
-#endif

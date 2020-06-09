@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_CRC32_H_
-#define QPSK_CRC32_H_
+#pragma once
 
 #include <cstdint>
 
@@ -97,5 +96,3 @@ public:
 };
 
 }
-
-#endif

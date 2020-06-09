@@ -20,8 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_UTIL_H_
-#define QPSK_UTIL_H_
+#pragma once
 
 #include <cmath>
 
@@ -112,5 +111,3 @@ inline float Cosine(float t)
 }
 
 }
-
-#endif

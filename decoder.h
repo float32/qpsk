@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QPSK_DECODER_H_
-#define QPSK_DECODER_H_
+#pragma once
 
 #include <cstdint>
 #include "inc/demodulator.h"
@@ -312,5 +311,3 @@ protected:
 };
 
 }
-
-#endif
