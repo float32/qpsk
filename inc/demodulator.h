@@ -142,65 +142,18 @@ public:
     }
 
     // Accessors for debug and simulation
-    uint32_t state(void)
-    {
-        return state_;
-    }
-
-    float PllPhase(void)
-    {
-        return pll_.Phase();
-    }
-
-    float PllPhaseError(void)
-    {
-        return pll_.PhaseError();
-    }
-
-    float PllPhaseIncrement(void)
-    {
-        return pll_.PhaseIncrement();
-    }
-
-    float DecisionPhase(void)
-    {
-        return decision_phase_;
-    }
-
-    float SignalPower(void)
-    {
-        return follower_.Output();
-    }
-
-    float RecoveredI(void)
-    {
-        return crf_i_.output();
-    }
-
-    float RecoveredQ(void)
-    {
-        return crf_q_.output();
-    }
-
-    float Correlation(void)
-    {
-        return correlator_.output();
-    }
-
-    bool Early(void)
-    {
-        return early_;
-    }
-
-    bool Late(void)
-    {
-        return late_;
-    }
-
-    bool Decide(void)
-    {
-        return decide_;
-    }
+    uint32_t state(void)             {return state_;}
+    float    PllPhase(void)          {return pll_.Phase();}
+    float    PllPhaseError(void)     {return pll_.PhaseError();}
+    float    PllPhaseIncrement(void) {return pll_.PhaseIncrement();}
+    float    DecisionPhase(void)     {return decision_phase_;}
+    float    SignalPower(void)       {return follower_.Output();}
+    float    RecoveredI(void)        {return crf_i_.output();}
+    float    RecoveredQ(void)        {return crf_q_.output();}
+    float    Correlation(void)       {return correlator_.output();}
+    bool     Early(void)             {return early_;}
+    bool     Late(void)              {return late_;}
+    bool     Decide(void)            {return decide_;}
 
 protected:
     static constexpr uint32_t kSettlingTime = 1024;
