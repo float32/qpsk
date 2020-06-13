@@ -95,11 +95,12 @@ class QPSKEncoder():
         self._signal.extend(self._symbol_lookup[0] * length)
 
     def _encode_intro(self):
-        self._signal.extend([0] * self._sample_rate)
+        self._signal.extend([0] * (self._sample_rate // 10))
         self._encode_blank(1.0)
 
     def _encode_outro(self):
         self._encode_blank(1.0)
+        self._signal.extend([0] * (self._sample_rate // 10))
 
     def _encode_byte(self, byte):
         self._encode_symbol((byte >> 6) & 3);
