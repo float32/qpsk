@@ -20,6 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// FIFO structures based on "Correct and Efficient Bounded FIFO Queues"
+// by Nhat Minh Lê, Adrien Guatto, Albert Cohen, Antoniu Pop
+// https://www.irif.fr/~guatto/papers/sbac13.pdf
+
 #pragma once
 
 #include <cstdint>
