@@ -57,19 +57,25 @@ public:
     template <class bay>
     bool Process(bay& i_history, bay& q_history)
     {
+        constexpr uint32_t kRipeAge = bay::length() * bay::width() / 2.f;
+        constexpr float kPeakThreshold = bay::length() * bay::width() / 2.f;
+
         correlation_ = 0.f;
 
-        for (uint32_t i = 0; i < kLength; i++)
+        if (++age_ >= kRipeAge)
         {
-            uint8_t symbol = kAlignmentSequence[kLength - 1 - i];
-            uint8_t expected_i = (symbol & 2);
-            uint8_t expected_q = (symbol & 1);
+            for (uint32_t i = 0; i < kLength; i++)
+            {
+                uint8_t symbol = kAlignmentSequence[kLength - 1 - i];
+                uint8_t expected_i = (symbol & 2);
+                uint8_t expected_q = (symbol & 1);
 
-            float i_sum = i_history[i].Sum();
-            float q_sum = q_history[i].Sum();
+                float i_sum = i_history[i].Sum();
+                float q_sum = q_history[i].Sum();
 
-            correlation_ += expected_i ? i_sum : -i_sum;
-            correlation_ += expected_q ? q_sum : -q_sum;
+                correlation_ += expected_i ? i_sum : -i_sum;
+                correlation_ += expected_q ? q_sum : -q_sum;
+            }
         }
 
         if (correlation_ < 0.f)
@@ -84,7 +90,6 @@ public:
         }
 
         history_.Write(correlation_);
-        age_++;
 
         // Detect a local maximum in the output of the correlator.
         uint32_t center = bay::length() / 2;
@@ -97,7 +102,7 @@ public:
         bool q_correlated = (symbol & 1) ? (q_history[0][center] > 0) :
                                            (q_history[0][center] < 0);
 
-        bool peak = (age_ >= 3) && (history_[1] == maximum_);
+        bool peak = (history_[1] == maximum_) && (maximum_ >= kPeakThreshold);
         return peak && i_correlated && q_correlated;
     }
 
