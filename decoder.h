@@ -35,7 +35,7 @@ enum Result
 {
     RESULT_NONE,
     RESULT_PACKET_COMPLETE,
-    RESULT_PAGE_COMPLETE,
+    RESULT_BLOCK_COMPLETE,
     RESULT_END,
     RESULT_ERROR,
 };
@@ -52,7 +52,7 @@ enum Error
 
 template <uint32_t samples_per_symbol,
           uint32_t packet_size,
-          uint32_t page_size,
+          uint32_t block_size,
           uint32_t fifo_capacity = 1024>
 class Decoder
 {
@@ -61,7 +61,7 @@ public:
     {
         demodulator_.Init();
         packet_.Init(crc_seed);
-        page_.Init();
+        block_.Init();
         recent_symbols_.Init();
         last_symbol_ = 0;
         Reset();
@@ -75,7 +75,7 @@ public:
         samples_.Flush();
 
         packet_.Reset();
-        page_.Clear();
+        block_.Clear();
 
         abort_ = false;
     }
@@ -109,16 +109,16 @@ public:
         }
     }
 
-    uint32_t* GetPage(void)
+    uint32_t* GetBlock(void)
     {
-        return page_.data();
+        return block_.data();
     }
 
     Result Receive(void)
     {
         if (state_ == STATE_WRITING)
         {
-            page_.Clear();
+            block_.Clear();
             RestartSync();
             demodulator_.SyncCarrier(false);
         }
@@ -154,15 +154,15 @@ public:
                         if (packet_.Valid())
                         {
                             packet_count_++;
-                            page_.AppendPacket(packet_);
+                            block_.AppendPacket(packet_);
 
                             RestartSync();
                             demodulator_.SyncDecision();
 
-                            if (page_.Complete())
+                            if (block_.Complete())
                             {
                                 state_ = STATE_WRITING;
-                                return RESULT_PAGE_COMPLETE;
+                                return RESULT_BLOCK_COMPLETE;
                             }
                         }
                         else
@@ -216,7 +216,7 @@ protected:
     static constexpr uint32_t kPreambleSize = 16;
     static constexpr uint32_t kMaxSyncDuration = 1000;
 
-    static_assert(page_size % packet_size == 0);
+    static_assert(block_size % packet_size == 0);
 
     static constexpr uint32_t SymbolMask(uint32_t x)
     {
@@ -239,10 +239,10 @@ protected:
     State state_;
     Error error_;
     Packet<packet_size> packet_;
-    Page<page_size> page_;
     uint32_t packet_count_;
     uint32_t sync_blank_size_;
     uint32_t preamble_remaining_size_;
+    Block<block_size> block_;
     uint8_t expected_;
     bool abort_;
 

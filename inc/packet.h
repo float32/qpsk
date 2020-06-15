@@ -126,11 +126,11 @@ public:
     }
 };
 
-template <uint32_t page_size>
-class Page
+template <uint32_t block_size>
+class Block
 {
 protected:
-    uint32_t data_[page_size / 4];
+    uint32_t data_[block_size / 4];
     uint32_t size_;
 
 public:
@@ -147,7 +147,7 @@ public:
     template <uint32_t packet_size>
     void AppendPacket(Packet<packet_size>& packet)
     {
-        if (size_ <= page_size - packet_size)
+        if (size_ <= block_size - packet_size)
         {
             std::memcpy(&data_[size_ / 4], packet.data(), packet_size);
             size_ += packet_size;
@@ -156,7 +156,7 @@ public:
 
     bool Complete(void)
     {
-        return size_ == page_size;
+        return size_ == block_size;
     }
 
     uint32_t* data(void)
