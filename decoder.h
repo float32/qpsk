@@ -157,12 +157,12 @@ public:
                         if (packet_.Valid())
                         {
                             block_.AppendPacket(packet_);
-
-                            RestartSync();
-                            demodulator_.SyncDecision();
+                            packet_.Reset();
 
                             if (block_.Complete())
                             {
+                                RestartSync();
+                                demodulator_.SyncDecision();
                                 state_ = STATE_WRITE;
                                 return RESULT_BLOCK_COMPLETE;
                             }
@@ -212,7 +212,7 @@ public:
 
 protected:
     static constexpr uint32_t kMarkerLength = 16;
-    static constexpr uint32_t kPacketMarker = 0xCCCCCCCC;
+    static constexpr uint32_t kBlockMarker = 0xCCCCCCCC;
     static constexpr uint32_t kEndMarker = 0xF0F0F0F0;
     static_assert(block_size % packet_size == 0);
 
@@ -282,8 +282,7 @@ protected:
         {
             switch (marker_code_)
             {
-            case kPacketMarker:
-                packet_.Reset();
+            case kBlockMarker:
                 state_ = STATE_DECODE;
                 break;
 

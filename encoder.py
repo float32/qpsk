@@ -66,9 +66,9 @@ class QPSKEncoder():
         self._crc_seed = crc_seed
         self._fill_byte = struct.pack('B', fill_byte)
 
-        self._preamble_header = b'\x00' * 8 + b'\x99' * 4
-        self._packet_marker = b'\xCC' * 4
-        self._end_marker = b'\xF0' * 4
+        self._alignment_sequence = b'\x99' * 4
+        self._block_marker = b'\xCC\xCC\xCC\xCC'
+        self._end_marker = b'\xF0\xF0\xF0\xF0'
         self._samples_per_symbol = self._sample_rate // self._symbol_rate
 
         self._signal = array.array('h')
@@ -101,7 +101,7 @@ class QPSKEncoder():
         self._encode_blank(1.0)
 
     def _encode_outro(self):
-        for byte in self._preamble_header + self._end_marker:
+        for byte in self._alignment_sequence + self._end_marker:
             self._encode_byte(byte)
         self._signal.extend([0] * (self._sample_rate // 10))
 
@@ -112,10 +112,20 @@ class QPSKEncoder():
         self._encode_symbol((byte >> 0) & 3);
 
     def _encode_packet(self, data):
+        assert len(data) == self._packet_size
         crc = zlib.crc32(data, self._crc_seed) & 0xFFFFFFFF
-        preamble = self._preamble_header + self._packet_marker
-        for byte in preamble + data + struct.pack('<L', crc):
+        for byte in data + struct.pack('<L', crc):
             self._encode_byte(byte)
+
+    def _encode_block(self, data):
+        assert len(data) == self._block_size
+        for byte in self._alignment_sequence + self._block_marker:
+            self._encode_byte(byte)
+
+        for i in range(0, self._block_size, self._packet_size):
+            packet = data[i : i + self._packet_size]
+            self._encode_packet(packet)
+
 
     def _page_spec(self, flash_spec):
         for (size, time, num) in flash_spec:
@@ -143,11 +153,9 @@ class QPSKEncoder():
             assert (remaining % self._block_size) == 0
 
             for i in range(remaining // self._block_size):
-                for j in range(self._block_size // self._packet_size):
-                    packet = data[:self._packet_size]
-                    assert len(packet) == self._packet_size
-                    data = data[self._packet_size:]
-                    self._encode_packet(packet)
+                block = data[:self._block_size]
+                data = data[self._block_size:]
+                self._encode_block(block)
                 if i == 0:
                     self._encode_blank(erase_time)
                 self._encode_blank(self._write_time)
