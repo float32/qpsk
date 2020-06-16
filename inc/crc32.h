@@ -67,31 +67,28 @@ public:
             initialized_ = true;
         }
 
-        crc_ = 0;
+        crc_ = 0xFFFFFFFF;
     }
 
     void Seed(uint32_t crc)
     {
-        crc_ = crc;
+        crc_ = ~crc;
     }
 
     uint32_t Process(const uint8_t* data, uint32_t length)
     {
-        crc_ = ~crc_;
-
         while (length--)
         {
             uint8_t byte = *(data++);
             crc_ = (crc_ >> 8) ^ table_[(crc_ & 0xFF) ^ byte];
         }
 
-        crc_ = ~crc_;
-        return crc_;
+        return ~crc_;
     }
 
     uint32_t crc(void) const
     {
-        return crc_;
+        return ~crc_;
     }
 };
 
