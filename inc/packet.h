@@ -112,7 +112,7 @@ public:
 
     uint32_t ExpectedCRC(void)
     {
-        #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
             return __builtin_bswap32(packet_.crc);
         #else
             return packet_.crc;

@@ -110,7 +110,7 @@ class QPSKEncoder():
 
     def _encode_packet(self, data):
         crc = zlib.crc32(data, self._crc_seed) & 0xFFFFFFFF
-        for byte in self._packet_preamble + data + struct.pack('>L', crc):
+        for byte in self._packet_preamble + data + struct.pack('<L', crc):
             self._encode_byte(byte)
 
     def _page_spec(self, flash_spec):
