@@ -37,7 +37,7 @@ protected:
     static constexpr uint32_t kPacketDataLength = packet_size;
 
     uint32_t size_;
-    uint32_t symbol_count_;
+    uint32_t byte_;
     Crc32 crc_;
     uint32_t seed_;
 
@@ -49,9 +49,31 @@ protected:
 
     union
     {
-        QPSKPacket packet;
-        uint8_t bytes[sizeof(QPSKPacket)];
-    } packet_;
+        QPSKPacket packet_;
+        uint8_t bytes_[sizeof(QPSKPacket)];
+    };
+
+    void PushByte(uint8_t byte)
+    {
+        if (size_ >= sizeof(QPSKPacket))
+        {
+            return;
+        }
+
+        bytes_[size_] = byte;
+        size_++;
+
+        if (size_ == sizeof(QPSKPacket))
+        {
+            Finalize();
+        }
+    }
+
+    void Finalize(void)
+    {
+        crc_.Seed(seed_);
+        crc_.Process(packet_.data, kPacketDataLength);
+    }
 
 public:
     void Init(uint32_t crc_seed)
@@ -64,31 +86,17 @@ public:
     void Reset(void)
     {
         size_ = 0;
-        symbol_count_ = 0;
-    }
-
-    void WriteByte(uint8_t byte)
-    {
-        if (size_ < sizeof(QPSKPacket))
-        {
-            packet_.bytes[size_] = byte;
-            size_++;
-        }
+        byte_ = 1;
     }
 
     void WriteSymbol(uint8_t symbol)
     {
-        if (size_ < sizeof(QPSKPacket))
-        {
-            packet_.bytes[size_] <<= 2;
-            packet_.bytes[size_] |= symbol;
-            symbol_count_++;
+        byte_ = (byte_ << 2) | symbol;
 
-            if (symbol_count_ == 4)
-            {
-                symbol_count_ = 0;
-                size_++;
-            }
+        if (byte_ & 0x100)
+        {
+            PushByte(byte_);
+            byte_ = 1;
         }
     }
 
@@ -99,15 +107,16 @@ public:
 
     uint32_t CalculatedCRC(void)
     {
-        crc_.Seed(seed_);
-        return crc_.Process(packet_.packet.data, kPacketDataLength);
+        return crc_.crc();
     }
 
     uint32_t ExpectedCRC(void)
     {
-        uint32_t crc = packet_.packet.crc;
-        crc = __builtin_bswap32(crc);
-        return crc;
+        #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+            return __builtin_bswap32(packet_.crc);
+        #else
+            return packet_.crc;
+        #endif
     }
 
     bool Valid(void)
@@ -117,12 +126,12 @@ public:
 
     uint8_t* data(void)
     {
-        return packet_.packet.data;
+        return packet_.data;
     }
 
     uint8_t last_byte(void)
     {
-        return size_ ? packet_.bytes[size_ - 1] : 0;
+        return size_ ? bytes_[size_ - 1] : 0;
     }
 };
 
