@@ -92,7 +92,7 @@ public:
 
     void Push(float sample)
     {
-        if (samples_.Full() && state_ != STATE_WRITING && state_ != STATE_END)
+        if (samples_.Full() && state_ != STATE_WRITE && state_ != STATE_END)
         {
             state_ = STATE_ERROR;
             error_ = ERROR_OVERFLOW;
@@ -116,7 +116,7 @@ public:
 
     Result Receive(void)
     {
-        if (state_ == STATE_WRITING)
+        if (state_ == STATE_WRITE)
         {
             block_.Clear();
             RestartSync();
@@ -145,11 +145,11 @@ public:
                 recent_symbols_.Push(symbol);
                 last_symbol_ = symbol;
 
-                if (state_ == STATE_SYNCING)
+                if (state_ == STATE_SYNC)
                 {
                     Sync(symbol);
                 }
-                else if (state_ == STATE_DECODING)
+                else if (state_ == STATE_DECODE)
                 {
                     packet_.WriteSymbol(symbol);
 
@@ -165,7 +165,7 @@ public:
 
                             if (block_.Complete())
                             {
-                                state_ = STATE_WRITING;
+                                state_ = STATE_WRITE;
                                 return RESULT_BLOCK_COMPLETE;
                             }
                         }
@@ -225,9 +225,9 @@ protected:
 
     enum State
     {
-        STATE_SYNCING,
-        STATE_DECODING,
-        STATE_WRITING,
+        STATE_SYNC,
+        STATE_DECODE,
+        STATE_WRITE,
         STATE_END,
         STATE_ERROR,
     };
@@ -248,7 +248,7 @@ protected:
 
     void RestartSync(void)
     {
-        state_ = STATE_SYNCING;
+        state_ = STATE_SYNC;
         error_ = ERROR_NONE;
 
         expected_ = SymbolMask(4);
@@ -301,11 +301,11 @@ protected:
         if (preamble_remaining_size_ == 0)
         {
             packet_.Reset();
-            state_ = STATE_DECODING;
+            state_ = STATE_DECODE;
         }
         else
         {
-            state_ = STATE_SYNCING;
+            state_ = STATE_SYNC;
         }
     }
 };

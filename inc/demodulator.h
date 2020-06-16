@@ -90,7 +90,7 @@ public:
     void SyncDecision(void)
     {
         symbols_.Flush();
-        state_ = STATE_DECISION_SYNC;
+        state_ = STATE_ALIGN;
         decision_phase_ = 0.f;
         inhibit_decision_ = true;
         correlator_.Reset();
@@ -167,8 +167,7 @@ protected:
         STATE_WAIT_TO_SETTLE,
         STATE_SENSE_GAIN,
         STATE_CARRIER_SYNC,
-        STATE_DECISION_SYNC,
-        STATE_OVERFLOW,
+        STATE_ALIGN,
         STATE_OK,
     };
 
@@ -282,7 +281,7 @@ protected:
                 }
                 break;
 
-            case STATE_DECISION_SYNC:
+            case STATE_ALIGN:
                 symbols_.Push(4);
                 break;
 
@@ -292,12 +291,11 @@ protected:
 
             case STATE_WAIT_TO_SETTLE:
             case STATE_SENSE_GAIN:
-            case STATE_OVERFLOW:
                 break;
             }
         }
 
-        if (state_ == STATE_DECISION_SYNC)
+        if (state_ == STATE_ALIGN)
         {
             bool correlated = correlator_.Process(i_history_, q_history_);
 
