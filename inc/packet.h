@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstring>
 #include "crc32.h"
+#include "error_correction.h"
 
 namespace qpsk
 {
@@ -36,15 +37,22 @@ class Packet
 protected:
     static constexpr uint32_t kPacketDataLength = packet_size;
 
+    static constexpr uint32_t max_data_bits(uint32_t num_parity_bits)
+    {
+        return (2 << num_parity_bits) - num_parity_bits - 1;
+    }
+
     uint32_t size_;
     uint32_t byte_;
     Crc32 crc_;
     uint32_t seed_;
+    HammingDecoder hamming_;
 
     struct __attribute__ ((__packed__)) QPSKPacket
     {
         uint8_t data[kPacketDataLength];
         uint32_t crc;
+        uint16_t ecc;
     };
 
     union
@@ -53,24 +61,32 @@ protected:
         uint8_t bytes_[sizeof(QPSKPacket)];
     };
 
+    static_assert(
+        kPacketDataLength * 8 <= max_data_bits(sizeof(packet_.ecc) * 8));
+
     void PushByte(uint8_t byte)
     {
-        if (size_ >= sizeof(QPSKPacket))
+        if (size_ < sizeof(QPSKPacket))
         {
-            return;
-        }
+            bytes_[size_] = byte;
+            size_++;
 
-        bytes_[size_] = byte;
-        size_++;
-
-        if (size_ == sizeof(QPSKPacket))
-        {
-            Finalize();
+            if (size_ == sizeof(QPSKPacket))
+            {
+                Finalize();
+            }
         }
     }
 
     void Finalize(void)
     {
+        #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            packet_.ecc = __builtin_bswap16(packet_.ecc);
+        #endif
+
+        hamming_.Init(packet_.ecc);
+        hamming_.Process(bytes_, sizeof(QPSKPacket) - sizeof(packet_.ecc));
+
         crc_.Seed(seed_);
         crc_.Process(packet_.data, kPacketDataLength);
     }
@@ -121,7 +137,7 @@ public:
 
     bool Valid(void)
     {
-        return CalculatedCRC() == ExpectedCRC();
+        return Complete() && (CalculatedCRC() == ExpectedCRC());
     }
 
     uint8_t* data(void)

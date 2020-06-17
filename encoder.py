@@ -111,10 +111,23 @@ class QPSKEncoder():
         self._encode_symbol((byte >> 2) & 3);
         self._encode_symbol((byte >> 0) & 3);
 
+    def _hamming(self, data):
+        parity = 0
+        bit_num = 1
+        for i in range(len(data) * 8):
+            while ((bit_num & (bit_num - 1)) == 0):
+                bit_num += 1
+            bit = (data[i // 8] >> (i % 8)) & 1
+            if bit:
+                parity ^= bit_num
+            bit_num += 1
+        return parity
+
     def _encode_packet(self, data):
         assert len(data) == self._packet_size
         crc = zlib.crc32(data, self._crc_seed) & 0xFFFFFFFF
-        for byte in data + struct.pack('<L', crc):
+        data += struct.pack('<L', crc)
+        for byte in data + struct.pack('<H', self._hamming(data)):
             self._encode_byte(byte)
 
     def _encode_block(self, data):
