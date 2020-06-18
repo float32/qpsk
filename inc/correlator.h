@@ -91,18 +91,8 @@ public:
             maximum_ = correlation_;
         }
 
-        history_.Write(correlation_);
-
         // Detect a local maximum in the output of the correlator.
-        uint32_t center = bay::length() / 2;
-
-        uint8_t symbol = kAlignmentSequence[kLength - 1];
-
-        bool i_correlated = (symbol & 2) ? (i_history[0][center] > 0) :
-                                           (i_history[0][center] < 0);
-
-        bool q_correlated = (symbol & 1) ? (q_history[0][center] > 0) :
-                                           (q_history[0][center] < 0);
+        history_.Write(correlation_);
 
         bool peak = (history_[1] == maximum_) && history_[0] < maximum_ &&
             (maximum_ >= kPeakThreshold);
@@ -116,6 +106,15 @@ public:
             float right = history_[1] - history_[0];
             tilt_ = 0.5f * (left - right) / (left + right);
         }
+
+        uint32_t center = bay::length() / 2;
+        uint8_t symbol = kAlignmentSequence[kLength - 1];
+
+        bool i_correlated = (symbol & 2) ? (i_history[0][center] > 0) :
+                                           (i_history[0][center] < 0);
+
+        bool q_correlated = (symbol & 1) ? (q_history[0][center] > 0) :
+                                           (q_history[0][center] < 0);
 
         return peak && i_correlated && q_correlated;
     }
