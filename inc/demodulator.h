@@ -157,7 +157,6 @@ public:
 
 protected:
     static constexpr uint32_t kSettlingTime = 1024;
-    static constexpr uint32_t kObservationWindowLength = 512;
     static constexpr float kLevelThreshold = 0.05f;
     static constexpr uint32_t kNumSkippedZeroSymbols = 32;
     static constexpr uint32_t kNumLockedTemplateSymbols = 4;
