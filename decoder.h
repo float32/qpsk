@@ -92,7 +92,7 @@ public:
 
     void Push(float sample)
     {
-        if (samples_.Full() && state_ != STATE_WRITING)
+        if (samples_.Full() && state_ != STATE_WRITING && state_ != STATE_END)
         {
             state_ = STATE_ERROR;
             error_ = ERROR_OVERFLOW;
@@ -121,6 +121,10 @@ public:
             block_.Clear();
             RestartSync();
             demodulator_.SyncCarrier(false);
+        }
+        else if (state_ == STATE_END)
+        {
+            return RESULT_END;
         }
 
         float sample;
@@ -173,10 +177,6 @@ public:
 
                         return RESULT_PACKET_COMPLETE;
                     }
-                }
-                else if (state_ == STATE_END)
-                {
-                    return RESULT_END;
                 }
                 else if (state_ == STATE_ERROR)
                 {
