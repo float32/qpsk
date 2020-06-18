@@ -70,6 +70,7 @@ public:
     {
         skipped_samples_ = 0;
         skipped_symbols_ = 0;
+        correlation_peaks_ = 0;
         symbols_.Flush();
 
         if (discover)
@@ -95,6 +96,7 @@ public:
         inhibit_decision_ = true;
         correlator_.Reset();
         skipped_symbols_ = 0;
+        correlation_peaks_ = 0;
     }
 
     void Process(float sample)
@@ -158,8 +160,8 @@ public:
 protected:
     static constexpr uint32_t kSettlingTime = 1024;
     static constexpr float kLevelThreshold = 0.05f;
-    static constexpr uint32_t kNumSkippedZeroSymbols = 32;
-    static constexpr uint32_t kNumLockedTemplateSymbols = 4;
+    static constexpr uint32_t kCarrierSyncLength = 32;
+    static constexpr uint32_t kNumCorrelationPeaks = 8;
     static constexpr uint32_t kSymbolDuration = symbol_duration;
 
     enum State
@@ -190,6 +192,7 @@ protected:
     bool inhibit_decision_;
     uint32_t skipped_samples_;
     uint32_t skipped_symbols_;
+    uint32_t correlation_peaks_;
 
     bool early_;
     bool late_;
@@ -202,6 +205,7 @@ protected:
 
         skipped_samples_ = 0;
         skipped_symbols_ = 0;
+        correlation_peaks_ = 0;
         state_ = STATE_WAIT_TO_SETTLE;
 
         decision_phase_ = 0.f;
@@ -270,7 +274,7 @@ protected:
             case STATE_CARRIER_SYNC:
                 if (DecideSymbol(false) == 0)
                 {
-                    if (++skipped_symbols_ == kNumSkippedZeroSymbols)
+                    if (++skipped_symbols_ == kCarrierSyncLength)
                     {
                         SyncDecision();
                     }
@@ -301,12 +305,17 @@ protected:
 
             if (correlated)
             {
-                if (++skipped_symbols_ == kNumLockedTemplateSymbols)
+                if (++correlation_peaks_ == kNumCorrelationPeaks)
                 {
                     state_ = STATE_OK;
+                    // The averaged decision phase might be higher than our
+                    // current phase, so inhibit the decision so we don't
+                    // immediately demodulate a symbol off the end of the
+                    // alignment sequence.
+                    inhibit_decision_ = true;
                 }
 
-                decision_phase_ += prev_phase / kNumLockedTemplateSymbols;
+                decision_phase_ += prev_phase / kNumCorrelationPeaks;
             }
         }
     }
@@ -354,19 +363,19 @@ protected:
 
             float threshold = 1.25 * on_time_strength;
 
-            if (late_strength > threshold)
+            early_ = (early_strength > threshold);
+            late_ = (late_strength > threshold);
+
+            if (late_ && !early_)
             {
                 q_sum = q_sum_late;
                 i_sum = i_sum_late;
             }
-            else if (early_strength > threshold)
+            else if (early_ && !late_)
             {
                 q_sum = q_sum_early;
                 i_sum = i_sum_early;
             }
-
-            early_ = (early_strength > threshold);
-            late_ = (late_strength > threshold);
         }
         else
         {

@@ -71,7 +71,6 @@ public:
     {
         demodulator_.SyncCarrier(true);
         RestartSync();
-        packet_count_ = 0;
         samples_.Flush();
 
         packet_.Reset();
@@ -157,7 +156,6 @@ public:
                     {
                         if (packet_.Valid())
                         {
-                            packet_count_++;
                             block_.AppendPacket(packet_);
 
                             RestartSync();
@@ -213,15 +211,17 @@ public:
 
 
 protected:
-    static constexpr uint32_t kPreambleSize = 16;
-    static constexpr uint32_t kMaxSyncDuration = 1000;
-
+    static constexpr uint32_t kMarkerLength = 16;
+    static constexpr uint32_t kPacketMarker = 0xCCCCCCCC;
+    static constexpr uint32_t kEndMarker = 0xF0F0F0F0;
     static_assert(block_size % packet_size == 0);
 
     static constexpr uint32_t SymbolMask(uint32_t x)
     {
         return (1 << x);
     }
+
+    static constexpr uint32_t kAnySymbol = 0xF;
 
     enum State
     {
@@ -239,9 +239,8 @@ protected:
     State state_;
     Error error_;
     Packet<packet_size> packet_;
-    uint32_t packet_count_;
-    uint32_t sync_blank_size_;
-    uint32_t preamble_remaining_size_;
+    uint32_t marker_count_;
+    uint32_t marker_code_;
     Block<block_size> block_;
     uint8_t expected_;
     bool abort_;
@@ -252,9 +251,9 @@ protected:
         error_ = ERROR_NONE;
 
         expected_ = SymbolMask(4);
-        sync_blank_size_ = 0;
 
-        preamble_remaining_size_ = kPreambleSize;
+        marker_count_ = kMarkerLength;
+        marker_code_ = 0;
     }
 
     void Sync(uint8_t symbol)
@@ -266,42 +265,37 @@ protected:
             return;
         }
 
-        switch (symbol)
+        if (symbol == 4)
         {
-        case 4:
-            if (++sync_blank_size_ >= kMaxSyncDuration && packet_count_)
-            {
-                state_ = STATE_END;
-                return;
-            }
-
-            expected_ = SymbolMask(1) | SymbolMask(2) | SymbolMask(4);
-            preamble_remaining_size_ = kPreambleSize;
-            break;
-
-        case 3:
-            expected_ = SymbolMask(0);
-            preamble_remaining_size_--;
-            break;
-
-        case 2:
-            expected_ = SymbolMask(1);
-            break;
-
-        case 1:
-            expected_ = SymbolMask(2) | SymbolMask(3);
-            break;
-
-        case 0:
-            expected_ = SymbolMask(3);
-            preamble_remaining_size_--;
-            break;
+            expected_ = kAnySymbol | SymbolMask(4);
+            marker_code_ = 0;
+            marker_count_ = kMarkerLength;
+        }
+        else
+        {
+            expected_ = kAnySymbol;
+            marker_code_ = (marker_code_ << 2) | symbol;
+            marker_count_--;
         }
 
-        if (preamble_remaining_size_ == 0)
+        if (marker_count_ == 0)
         {
-            packet_.Reset();
-            state_ = STATE_DECODE;
+            switch (marker_code_)
+            {
+            case kPacketMarker:
+                packet_.Reset();
+                state_ = STATE_DECODE;
+                break;
+
+            case kEndMarker:
+                state_ = STATE_END;
+                return;
+
+            default:
+                state_ = STATE_ERROR;
+                error_ = ERROR_SYNC;
+                return;
+            }
         }
         else
         {

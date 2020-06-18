@@ -66,7 +66,9 @@ class QPSKEncoder():
         self._crc_seed = crc_seed
         self._fill_byte = struct.pack('B', fill_byte)
 
-        self._packet_preamble = b'\x00' * 8 + b'\x99' * 4 + b'\xCC' * 4
+        self._preamble_header = b'\x00' * 8 + b'\x99' * 4
+        self._packet_marker = b'\xCC' * 4
+        self._end_marker = b'\xF0' * 4
         self._samples_per_symbol = self._sample_rate // self._symbol_rate
 
         self._signal = array.array('h')
@@ -99,7 +101,8 @@ class QPSKEncoder():
         self._encode_blank(1.0)
 
     def _encode_outro(self):
-        self._encode_blank(1.0)
+        for byte in self._preamble_header + self._end_marker:
+            self._encode_byte(byte)
         self._signal.extend([0] * (self._sample_rate // 10))
 
     def _encode_byte(self, byte):
@@ -110,7 +113,8 @@ class QPSKEncoder():
 
     def _encode_packet(self, data):
         crc = zlib.crc32(data, self._crc_seed) & 0xFFFFFFFF
-        for byte in self._packet_preamble + data + struct.pack('<L', crc):
+        preamble = self._preamble_header + self._packet_marker
+        for byte in preamble + data + struct.pack('<L', crc):
             self._encode_byte(byte)
 
     def _page_spec(self, flash_spec):
