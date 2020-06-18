@@ -68,6 +68,16 @@ for line in FloatTable(sine):
     cog.outl('    ' + line)
 cog.outl('};')
 
+
+length = 65
+arctan = [math.atan(x / (length - 1)) for x in range(length)]
+
+cog.outl('inline constexpr float kArcTanNonNegative[{0}] ='.format(length))
+cog.outl('{')
+for line in FloatTable(arctan):
+    cog.outl('    ' + line)
+cog.outl('};')
+
 ]]] */
 inline constexpr float kSineQuadrant[65] =
 {
@@ -89,6 +99,26 @@ inline constexpr float kSineQuadrant[65] =
      9.95184727e-01,  9.97290457e-01,  9.98795456e-01,  9.99698819e-01,
      1.00000000e+00,
 };
+inline constexpr float kArcTanNonNegative[65] =
+{
+     0.00000000e+00,  1.56237286e-02,  3.12398334e-02,  4.68407129e-02,
+     6.24188100e-02,  7.79666338e-02,  9.34767812e-02,  1.08941957e-01,
+     1.24354995e-01,  1.39708874e-01,  1.54996742e-01,  1.70211925e-01,
+     1.85347950e-01,  2.00398554e-01,  2.15357700e-01,  2.30219587e-01,
+     2.44978663e-01,  2.59629629e-01,  2.74167451e-01,  2.88587362e-01,
+     3.02884868e-01,  3.17055753e-01,  3.31096077e-01,  3.45002177e-01,
+     3.58770670e-01,  3.72398447e-01,  3.85882669e-01,  3.99220770e-01,
+     4.12410442e-01,  4.25449637e-01,  4.38336560e-01,  4.51069656e-01,
+     4.63647609e-01,  4.76069330e-01,  4.88333951e-01,  5.00440813e-01,
+     5.12389460e-01,  5.24179629e-01,  5.35811238e-01,  5.47284381e-01,
+     5.58599315e-01,  5.69756453e-01,  5.80756354e-01,  5.91599710e-01,
+     6.02287346e-01,  6.12820202e-01,  6.23199330e-01,  6.33425883e-01,
+     6.43501109e-01,  6.53426341e-01,  6.63202993e-01,  6.72832548e-01,
+     6.82316555e-01,  6.91656622e-01,  7.00854408e-01,  7.09911618e-01,
+     7.18830000e-01,  7.27611333e-01,  7.36257429e-01,  7.44770126e-01,
+     7.53151281e-01,  7.61402770e-01,  7.69526480e-01,  7.77524310e-01,
+     7.85398163e-01,
+};
 // [[[end]]]
 
 inline float Sine(float t)
@@ -108,6 +138,58 @@ inline float Sine(float t)
 inline float Cosine(float t)
 {
     return Sine(t + 0.25f);
+}
+
+inline float RestrictedArcTan(float x)
+{
+    if (x < 0.f)
+    {
+        return -RestrictedArcTan(-x);
+    }
+    else if (x <= 1.f)
+    {
+        uint32_t index = x * 64 + 0.5f;
+        return kArcTanNonNegative[index];
+    }
+    else
+    {
+        return kArcTanNonNegative[64];
+    }
+}
+
+inline float RestrictedArcCot(float x)
+{
+    if (x < 0.f)
+    {
+        return M_PI_2 + RestrictedArcTan(-x);
+    }
+    else
+    {
+        return M_PI_2 - RestrictedArcTan(x);
+    }
+}
+
+inline float VectorToAngle(float x, float y)
+{
+    if (x == 0.f && y == 0.f)
+    {
+        return 0.f;
+    }
+    else if (Abs(y) < Abs(x))
+    {
+        float angle = RestrictedArcTan(y / x);
+        return (x < 0.f) ? (angle + M_PI) : angle;
+    }
+    else
+    {
+        float angle = RestrictedArcCot(x / y);
+        return (y < 0.f) ? (angle + M_PI) : angle;
+    }
+}
+
+inline float VectorToPhase(float x, float y)
+{
+    return FractionalPart(VectorToAngle(x, y) / (2 * M_PI) + 1.f);
 }
 
 }

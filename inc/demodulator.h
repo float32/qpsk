@@ -193,6 +193,8 @@ protected:
     uint32_t skipped_samples_;
     uint32_t skipped_symbols_;
     uint32_t correlation_peaks_;
+    Window<float, kNumCorrelationPeaks> avg_phase_x_;
+    Window<float, kNumCorrelationPeaks> avg_phase_y_;
 
     bool early_;
     bool late_;
@@ -210,6 +212,8 @@ protected:
 
         decision_phase_ = 0.f;
         inhibit_decision_ = false;
+        avg_phase_x_.Init();
+        avg_phase_y_.Init();
     }
 
     void Demodulate(float sample)
@@ -315,7 +319,12 @@ protected:
                     inhibit_decision_ = true;
                 }
 
-                decision_phase_ += prev_phase / kNumCorrelationPeaks;
+                float correlated_phase = FractionalPart(prev_phase +
+                    pll_.PhaseIncrement() * correlator_.tilt());
+                avg_phase_x_.Write(Cosine(correlated_phase));
+                avg_phase_y_.Write(Sine(correlated_phase));
+                decision_phase_ =
+                    VectorToPhase(avg_phase_x_.Sum(), avg_phase_y_.Sum());
             }
         }
     }

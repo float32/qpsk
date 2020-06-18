@@ -39,6 +39,7 @@ protected:
     uint32_t age_;
     float maximum_;
     float correlation_;
+    float tilt_;
 
 public:
     void Init(void)
@@ -52,6 +53,7 @@ public:
         age_ = 0;
         maximum_ = 0.f;
         correlation_ = 0.f;
+        tilt_ = 0.5f;
     }
 
     template <class bay>
@@ -102,7 +104,19 @@ public:
         bool q_correlated = (symbol & 1) ? (q_history[0][center] > 0) :
                                            (q_history[0][center] < 0);
 
-        bool peak = (history_[1] == maximum_) && (maximum_ >= kPeakThreshold);
+        bool peak = (history_[1] == maximum_) && history_[0] < maximum_ &&
+            (maximum_ >= kPeakThreshold);
+
+        if (peak)
+        {
+            // We can approximate the sub-sample position of the peak by
+            // comparing the relative correlation of the samples before and
+            // after the raw peak.
+            float left = history_[1] - history_[2];
+            float right = history_[1] - history_[0];
+            tilt_ = 0.5f * (left - right) / (left + right);
+        }
+
         return peak && i_correlated && q_correlated;
     }
 
@@ -114,6 +128,11 @@ public:
     float output(void)
     {
         return correlation_;
+    }
+
+    float tilt(void)
+    {
+        return tilt_;
     }
 };
 
