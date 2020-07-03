@@ -195,7 +195,6 @@ public:
     float DecisionPhase(void)        {return demodulator_.DecisionPhase();}
     uint32_t SymbolsAvailable(void)  {return recent_symbols_.Available();}
     bool PopSymbol(uint8_t& symbol)  {return recent_symbols_.Pop(symbol);}
-    uint8_t ExpectedSymbolMask(void) {return expected_;}
     float SignalPower(void)          {return demodulator_.SignalPower();}
     uint32_t state(void)             {return state_;}
     float RecoveredI(void)           {return demodulator_.RecoveredI();}
@@ -213,13 +212,6 @@ protected:
     static constexpr uint32_t kBlockMarker = 0xCCCCCCCC;
     static constexpr uint32_t kEndMarker = 0xF0F0F0F0;
     static_assert(block_size % packet_size == 0);
-
-    static constexpr uint32_t SymbolMask(uint32_t x)
-    {
-        return (1 << x);
-    }
-
-    static constexpr uint32_t kAnySymbol = 0xF;
 
     enum State
     {
@@ -240,7 +232,6 @@ protected:
     uint32_t marker_count_;
     uint32_t marker_code_;
     Block<block_size> block_;
-    uint8_t expected_;
     bool abort_;
 
     void RestartSync(void)
@@ -248,33 +239,14 @@ protected:
         state_ = STATE_SYNC;
         error_ = ERROR_NONE;
 
-        expected_ = SymbolMask(4);
-
         marker_count_ = kMarkerLength;
         marker_code_ = 0;
     }
 
     void Sync(uint8_t symbol)
     {
-        if (!(SymbolMask(symbol) & expected_))
-        {
-            state_ = STATE_ERROR;
-            error_ = ERROR_SYNC;
-            return;
-        }
-
-        if (symbol == 4)
-        {
-            expected_ = kAnySymbol | SymbolMask(4);
-            marker_code_ = 0;
-            marker_count_ = kMarkerLength;
-        }
-        else
-        {
-            expected_ = kAnySymbol;
-            marker_code_ = (marker_code_ << 2) | symbol;
-            marker_count_--;
-        }
+        marker_code_ = (marker_code_ << 2) | symbol;
+        marker_count_--;
 
         if (marker_count_ == 0)
         {

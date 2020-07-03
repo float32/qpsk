@@ -280,11 +280,6 @@ protected:
                     skipped_symbols_ = 0;
                 }
             }
-            else if (state_ == STATE_ALIGN)
-            {
-                symbol = 4;
-                symbol_complete = true;
-            }
             else if (state_ == STATE_OK)
             {
                 symbol = DecideSymbol(true);
