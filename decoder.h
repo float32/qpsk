@@ -136,10 +136,8 @@ public:
                 return RESULT_ERROR;
             }
 
-            demodulator_.Process(sample);
             uint8_t symbol;
-
-            while (demodulator_.PopSymbol(symbol))
+            if (demodulator_.Process(symbol, sample))
             {
                 recent_symbols_.Push(symbol);
                 last_symbol_ = symbol;
@@ -235,7 +233,7 @@ protected:
     RingBuffer<float, fifo_capacity> samples_;
     RingBuffer<uint8_t, 128> recent_symbols_; // For debug
     uint8_t last_symbol_; // For sim
-    Demodulator<samples_per_symbol, 128> demodulator_;
+    Demodulator<samples_per_symbol> demodulator_;
     State state_;
     Error error_;
     Packet<packet_size> packet_;

@@ -26,7 +26,6 @@
 #include <cstdint>
 #include "carrier_rejection_filter.h"
 #include "correlator.h"
-#include "fifo.h"
 #include "one_pole.h"
 #include "pll.h"
 #include "util.h"
@@ -35,14 +34,13 @@
 namespace qpsk
 {
 
-template <uint32_t symbol_duration, uint32_t fifo_capacity>
+template <uint32_t symbol_duration>
 class Demodulator
 {
 public:
     void Init(void)
     {
         state_ = STATE_WAIT_TO_SETTLE;
-        symbols_.Init();
 
         hpf_.Init(0.001f);
         follower_.Init(0.0001f);
@@ -61,17 +59,11 @@ public:
         decide_ = false;
     }
 
-    bool PopSymbol(uint8_t& symbol)
-    {
-        return symbols_.Pop(symbol);
-    }
-
     void SyncCarrier(bool discover)
     {
         skipped_samples_ = 0;
         skipped_symbols_ = 0;
         correlation_peaks_ = 0;
-        symbols_.Flush();
 
         if (discover)
         {
@@ -90,7 +82,6 @@ public:
 
     void SyncDecision(void)
     {
-        symbols_.Flush();
         state_ = STATE_ALIGN;
         decision_phase_ = 0.f;
         inhibit_decision_ = true;
@@ -99,7 +90,7 @@ public:
         correlation_peaks_ = 0;
     }
 
-    void Process(float sample)
+    bool Process(uint8_t& symbol, float sample)
     {
         sample = hpf_.Process(sample);
 
@@ -139,8 +130,10 @@ public:
         }
         else
         {
-            Demodulate(sample);
+            return Demodulate(symbol, sample);
         }
+
+        return false;
     }
 
     // Accessors for debug and simulation
@@ -174,7 +167,6 @@ protected:
     };
 
     State state_;
-    Fifo<uint8_t, fifo_capacity> symbols_;
 
     OnePoleHighpass hpf_;
     OnePoleLowpass follower_;
@@ -216,7 +208,7 @@ protected:
         avg_phase_y_.Init();
     }
 
-    void Demodulate(float sample)
+    bool Demodulate(uint8_t& symbol, float sample)
     {
         float phase = pll_.Phase();
 
@@ -268,14 +260,14 @@ protected:
         }
 
         decide_ = decide;
+        bool symbol_complete = false;
 
         if (decide)
         {
             // In carrier sync mode, we just let the PLL stabilize until we
             // consistently decode a string of 0s.
-            switch (state_)
+            if (state_ == STATE_CARRIER_SYNC)
             {
-            case STATE_CARRIER_SYNC:
                 if (DecideSymbol(false) == 0)
                 {
                     if (++skipped_symbols_ == kCarrierSyncLength)
@@ -287,19 +279,16 @@ protected:
                 {
                     skipped_symbols_ = 0;
                 }
-                break;
-
-            case STATE_ALIGN:
-                symbols_.Push(4);
-                break;
-
-            case STATE_OK:
-                symbols_.Push(DecideSymbol(true));
-                break;
-
-            case STATE_WAIT_TO_SETTLE:
-            case STATE_SENSE_GAIN:
-                break;
+            }
+            else if (state_ == STATE_ALIGN)
+            {
+                symbol = 4;
+                symbol_complete = true;
+            }
+            else if (state_ == STATE_OK)
+            {
+                symbol = DecideSymbol(true);
+                symbol_complete = true;
             }
         }
 
@@ -325,6 +314,8 @@ protected:
                     VectorToPhase(avg_phase_x_.Sum(), avg_phase_y_.Sum());
             }
         }
+
+        return symbol_complete;
     }
 
     static constexpr uint32_t kLatest   = 0;
