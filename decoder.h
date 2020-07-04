@@ -69,8 +69,8 @@ public:
 
     void Reset(void)
     {
-        demodulator_.SyncCarrier(true);
-        RestartSync();
+        demodulator_.Reset();
+        BeginSync();
         samples_.Flush();
 
         packet_.Reset();
@@ -118,8 +118,8 @@ public:
         if (state_ == STATE_WRITE)
         {
             block_.Clear();
-            RestartSync();
-            demodulator_.SyncCarrier(false);
+            demodulator_.BeginCarrierSync();
+            BeginSync();
         }
         else if (state_ == STATE_END)
         {
@@ -159,8 +159,6 @@ public:
 
                             if (block_.Complete())
                             {
-                                RestartSync();
-                                demodulator_.SyncDecision();
                                 state_ = STATE_WRITE;
                                 return RESULT_BLOCK_COMPLETE;
                             }
@@ -234,7 +232,7 @@ protected:
     Block<block_size> block_;
     bool abort_;
 
-    void RestartSync(void)
+    void BeginSync(void)
     {
         state_ = STATE_SYNC;
         error_ = ERROR_NONE;

@@ -52,42 +52,33 @@ public:
 
         correlator_.Init();
 
-        Reset();
+        q_history_.Init();
+        i_history_.Init();
+
+        decision_phase_ = 0.f;
+        inhibit_decision_ = false;
+        skipped_samples_ = 0;
+        skipped_symbols_ = 0;
+
+        correlation_peaks_ = 0;
+        avg_phase_x_.Init();
+        avg_phase_y_.Init();
 
         early_ = false;
         late_ = false;
         decide_ = false;
     }
 
-    void SyncCarrier(bool discover)
+    void Reset(void)
     {
-        skipped_samples_ = 0;
-        skipped_symbols_ = 0;
-        correlation_peaks_ = 0;
-
-        if (discover)
-        {
-            follower_.Reset();
-            state_ = STATE_WAIT_TO_SETTLE;
-        }
-        else
-        {
-            state_ = STATE_CARRIER_SYNC;
-        }
-
-        pll_.Sync();
-        q_history_.Init();
-        i_history_.Init();
+        Init();
     }
 
-    void SyncDecision(void)
+    void BeginCarrierSync(void)
     {
-        state_ = STATE_ALIGN;
-        decision_phase_ = 0.f;
-        inhibit_decision_ = true;
-        correlator_.Reset();
+        state_ = STATE_CARRIER_SYNC;
+        pll_.Sync();
         skipped_symbols_ = 0;
-        correlation_peaks_ = 0;
     }
 
     bool Process(uint8_t& symbol, float sample)
@@ -121,7 +112,7 @@ public:
             else if (level > kLevelThreshold)
             {
                 agc_gain_ = 0.64f / level;
-                state_ = STATE_CARRIER_SYNC;
+                BeginCarrierSync();
             }
             else
             {
@@ -184,6 +175,7 @@ protected:
     bool inhibit_decision_;
     uint32_t skipped_samples_;
     uint32_t skipped_symbols_;
+
     uint32_t correlation_peaks_;
     Window<float, kNumCorrelationPeaks> avg_phase_x_;
     Window<float, kNumCorrelationPeaks> avg_phase_y_;
@@ -192,20 +184,12 @@ protected:
     bool late_;
     bool decide_;
 
-    void Reset(void)
+    void BeginAlignment(void)
     {
-        q_history_.Init();
-        i_history_.Init();
-
-        skipped_samples_ = 0;
-        skipped_symbols_ = 0;
-        correlation_peaks_ = 0;
-        state_ = STATE_WAIT_TO_SETTLE;
-
+        state_ = STATE_ALIGN;
         decision_phase_ = 0.f;
-        inhibit_decision_ = false;
-        avg_phase_x_.Init();
-        avg_phase_y_.Init();
+        correlator_.Reset();
+        correlation_peaks_ = 0;
     }
 
     bool Demodulate(uint8_t& symbol, float sample)
@@ -272,7 +256,7 @@ protected:
                 {
                     if (++skipped_symbols_ == kCarrierSyncLength)
                     {
-                        SyncDecision();
+                        BeginAlignment();
                     }
                 }
                 else
