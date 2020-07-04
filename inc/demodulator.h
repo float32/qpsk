@@ -305,20 +305,18 @@ protected:
 
         if (state_ == STATE_ALIGN)
         {
-            bool correlated = correlator_.Process(i_history_, q_history_);
-
-            if (correlated)
+            if (correlation_peaks_ == kNumCorrelationPeaks)
             {
-                if (++correlation_peaks_ == kNumCorrelationPeaks)
-                {
-                    state_ = STATE_OK;
-                    // The averaged decision phase might be higher than our
-                    // current phase, so inhibit the decision so we don't
-                    // immediately demodulate a symbol off the end of the
-                    // alignment sequence.
-                    inhibit_decision_ = true;
-                }
-
+                state_ = STATE_OK;
+                // The averaged decision phase might be higher than our
+                // current phase, so inhibit the decision so we don't
+                // immediately demodulate a symbol off the end of the
+                // alignment sequence.
+                inhibit_decision_ = true;
+            }
+            else if (correlator_.Process(i_history_, q_history_))
+            {
+                correlation_peaks_++;
                 float correlated_phase = FractionalPart(prev_phase +
                     pll_.PhaseIncrement() * correlator_.tilt());
                 avg_phase_x_.Write(Cosine(correlated_phase));
