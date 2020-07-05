@@ -46,7 +46,6 @@ protected:
     Window<float, 3> correlation_history_;
     uint32_t age_;
     float maximum_;
-    float correlation_;
     float tilt_;
 
 public:
@@ -62,7 +61,6 @@ public:
         correlation_history_.Init();
         age_ = 0;
         maximum_ = 0.f;
-        correlation_ = 0.f;
         tilt_ = 0.5f;
     }
 
@@ -71,7 +69,7 @@ public:
         i_history_.Write(i_sample);
         q_history_.Write(q_sample);
 
-        correlation_ = 0.f;
+        float correlation = 0.f;
 
         if (++age_ >= kRipeAge)
         {
@@ -84,24 +82,24 @@ public:
                 float i_sum = i_history_[i].Sum();
                 float q_sum = q_history_[i].Sum();
 
-                correlation_ += expected_i ? i_sum : -i_sum;
-                correlation_ += expected_q ? q_sum : -q_sum;
+                correlation += expected_i ? i_sum : -i_sum;
+                correlation += expected_q ? q_sum : -q_sum;
             }
         }
 
-        if (correlation_ < 0.f)
+        if (correlation < 0.f)
         {
             // Reset the peak detector at each valley in the detection function,
             // so that we can detect several consecutive peaks.
             maximum_ = 0.f;
         }
-        else if (correlation_ > maximum_)
+        else if (correlation > maximum_)
         {
-            maximum_ = correlation_;
+            maximum_ = correlation;
         }
 
         // Detect a local maximum in the output of the correlator.
-        correlation_history_.Write(correlation_);
+        correlation_history_.Write(correlation);
 
         bool peak = (correlation_history_[1] == maximum_) &&
                     (correlation_history_[0] < maximum_) &&
@@ -117,21 +115,12 @@ public:
             tilt_ = 0.5f * (left - right) / (left + right);
         }
 
-        uint32_t center = kSymbolDuration / 2;
-        uint8_t symbol = kAlignmentPattern & 3;
-
-        bool i_correlated = (symbol & 2) ? (i_history_[0][center] > 0) :
-                                           (i_history_[0][center] < 0);
-
-        bool q_correlated = (symbol & 1) ? (q_history_[0][center] > 0) :
-                                           (q_history_[0][center] < 0);
-
-        return peak && i_correlated && q_correlated;
+        return peak;
     }
 
     float output(void)
     {
-        return correlation_;
+        return correlation_history_[0];
     }
 
     float tilt(void)
