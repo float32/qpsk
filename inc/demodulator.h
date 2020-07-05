@@ -58,7 +58,7 @@ public:
         decision_phase_ = 0.f;
         inhibit_decision_ = false;
         skipped_samples_ = 0;
-        skipped_symbols_ = 0;
+        carrier_sync_count_ = 0;
 
         correlation_peaks_ = 0;
         avg_phase_x_.Init();
@@ -78,7 +78,7 @@ public:
     {
         state_ = STATE_CARRIER_SYNC;
         pll_.Sync();
-        skipped_symbols_ = 0;
+        carrier_sync_count_ = 0;
     }
 
     bool Process(uint8_t& symbol, float sample)
@@ -175,7 +175,7 @@ protected:
     float decision_phase_;
     bool inhibit_decision_;
     uint32_t skipped_samples_;
-    uint32_t skipped_symbols_;
+    uint32_t carrier_sync_count_;
 
     uint32_t correlation_peaks_;
     Window<float, kNumCorrelationPeaks> avg_phase_x_;
@@ -234,34 +234,26 @@ protected:
                      (phase >= decision_phase_);
         }
 
-        bool symbol_complete = false;
-
-        if (decide_)
+        if (state_ == STATE_CARRIER_SYNC)
         {
             // In carrier sync mode, we just let the PLL stabilize until we
             // consistently decode a string of 0s.
-            if (state_ == STATE_CARRIER_SYNC)
+            if (decide_)
             {
                 if (DecideSymbol(false) == 0)
                 {
-                    if (++skipped_symbols_ == kCarrierSyncLength)
+                    if (++carrier_sync_count_ == kCarrierSyncLength)
                     {
                         BeginAlignment();
                     }
                 }
                 else
                 {
-                    skipped_symbols_ = 0;
+                    carrier_sync_count_ = 0;
                 }
             }
-            else if (state_ == STATE_OK)
-            {
-                symbol = DecideSymbol(true);
-                symbol_complete = true;
-            }
         }
-
-        if (state_ == STATE_ALIGN)
+        else if (state_ == STATE_ALIGN)
         {
             if (correlation_peaks_ == kNumCorrelationPeaks)
             {
@@ -283,8 +275,16 @@ protected:
                     VectorToPhase(avg_phase_x_.Sum(), avg_phase_y_.Sum());
             }
         }
+        else if (state_ == STATE_OK)
+        {
+            if (decide_)
+            {
+                symbol = DecideSymbol(true);
+                return true;
+            }
+        }
 
-        return symbol_complete;
+        return false;
     }
 
     static constexpr uint32_t kLatest   = 0;
