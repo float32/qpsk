@@ -100,7 +100,11 @@ class QPSKEncoder():
         self._signal.extend([0] * (self._sample_rate // 10))
         self._encode_blank(1.0)
 
+    def _encode_resync(self):
+        self._encode_blank(0.025) # PLL resync
+
     def _encode_outro(self):
+        self._encode_resync()
         for byte in self._alignment_sequence + self._end_marker:
             self._encode_byte(byte)
         self._signal.extend([0] * (self._sample_rate // 10))
@@ -132,6 +136,9 @@ class QPSKEncoder():
 
     def _encode_block(self, data):
         assert len(data) == self._block_size
+
+        self._encode_resync()
+
         for byte in self._alignment_sequence + self._block_marker:
             self._encode_byte(byte)
 

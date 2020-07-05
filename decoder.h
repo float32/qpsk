@@ -50,7 +50,8 @@ enum Error
     ERROR_TIMEOUT,
 };
 
-template <uint32_t samples_per_symbol,
+template <uint32_t sample_rate,
+          uint32_t symbol_rate,
           uint32_t packet_size,
           uint32_t block_size,
           uint32_t fifo_capacity = 1024>
@@ -223,7 +224,7 @@ protected:
     RingBuffer<float, fifo_capacity> samples_;
     RingBuffer<uint8_t, 128> recent_symbols_; // For debug
     uint8_t last_symbol_; // For sim
-    Demodulator<samples_per_symbol> demodulator_;
+    Demodulator<sample_rate, symbol_rate> demodulator_;
     State state_;
     Error error_;
     Packet<packet_size> packet_;

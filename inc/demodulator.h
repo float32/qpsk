@@ -34,7 +34,7 @@
 namespace qpsk
 {
 
-template <uint32_t symbol_duration>
+template <uint32_t sample_rate, uint32_t symbol_rate>
 class Demodulator
 {
 public:
@@ -46,7 +46,7 @@ public:
         follower_.Init(0.0001f);
         agc_gain_ = 1.f;
 
-        pll_.Init(1.f / symbol_duration);
+        pll_.Init(1.f / kSymbolDuration);
         crf_i_.Init();
         crf_q_.Init();
 
@@ -142,11 +142,12 @@ public:
     bool     Decide(void)            {return decide_;}
 
 protected:
-    static constexpr uint32_t kSettlingTime = 1024;
+    static constexpr uint32_t kSettlingTime = sample_rate * 0.25f;
     static constexpr float kLevelThreshold = 0.05f;
-    static constexpr uint32_t kCarrierSyncLength = 32;
+    static constexpr uint32_t kCarrierSyncLength = symbol_rate * 0.025f;
     static constexpr uint32_t kNumCorrelationPeaks = 8;
-    static constexpr uint32_t kSymbolDuration = symbol_duration;
+    static_assert(sample_rate % symbol_rate == 0);
+    static constexpr uint32_t kSymbolDuration = sample_rate / symbol_rate;
 
     enum State
     {
