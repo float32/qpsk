@@ -34,14 +34,15 @@ class Correlator
 {
 protected:
     static constexpr uint32_t kSymbolDuration = symbol_duration;
-    static inline const uint8_t kAlignmentSequence[] = {2, 1};
-    static constexpr uint32_t kLength = 2;
+    static constexpr uint32_t kAlignmentPattern = 0b1001;
+    static constexpr uint32_t kPatternLength = 2;
 
-    static constexpr uint32_t kRipeAge = kSymbolDuration * kLength / 2.f;
-    static constexpr float kPeakThreshold = kSymbolDuration * kLength / 2.f;
+    static constexpr uint32_t kRipeAge = kSymbolDuration * kPatternLength / 2.f;
+    static constexpr float kPeakThreshold =
+        kSymbolDuration * kPatternLength / 2.f;
 
-    Bay<float, kSymbolDuration, kLength> i_history_;
-    Bay<float, kSymbolDuration, kLength> q_history_;
+    Bay<float, kSymbolDuration, kPatternLength> i_history_;
+    Bay<float, kSymbolDuration, kPatternLength> q_history_;
     Window<float, 3> correlation_history_;
     uint32_t age_;
     float maximum_;
@@ -74,9 +75,9 @@ public:
 
         if (++age_ >= kRipeAge)
         {
-            for (uint32_t i = 0; i < kLength; i++)
+            for (uint32_t i = 0; i < kPatternLength; i++)
             {
-                uint8_t symbol = kAlignmentSequence[kLength - 1 - i];
+                uint8_t symbol = kAlignmentPattern >> (i * 2);
                 uint8_t expected_i = (symbol & 2);
                 uint8_t expected_q = (symbol & 1);
 
@@ -117,7 +118,7 @@ public:
         }
 
         uint32_t center = kSymbolDuration / 2;
-        uint8_t symbol = kAlignmentSequence[kLength - 1];
+        uint8_t symbol = kAlignmentPattern & 3;
 
         bool i_correlated = (symbol & 2) ? (i_history_[0][center] > 0) :
                                            (i_history_[0][center] < 0);
