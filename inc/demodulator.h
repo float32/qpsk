@@ -168,9 +168,9 @@ protected:
     CarrierRejectionFilter<kSymbolDuration> crf_i_;
     CarrierRejectionFilter<kSymbolDuration> crf_q_;
 
-    Correlator correlator_;
-    Bay<float, kSymbolDuration, Correlator::length()> q_history_;
-    Bay<float, kSymbolDuration, Correlator::length()> i_history_;
+    Correlator<kSymbolDuration> correlator_;
+    Window<float, kSymbolDuration> q_history_;
+    Window<float, kSymbolDuration> i_history_;
 
     float decision_phase_;
     bool inhibit_decision_;
@@ -283,7 +283,7 @@ protected:
                 // alignment sequence.
                 inhibit_decision_ = true;
             }
-            else if (correlator_.Process(i_history_, q_history_))
+            else if (correlator_.Process(i, q))
             {
                 correlation_peaks_++;
                 float correlated_phase = FractionalPart(prev_phase +
@@ -303,30 +303,30 @@ protected:
     static constexpr uint32_t kEarly    = kSymbolDuration - 2;
     static constexpr uint32_t kEarliest = kSymbolDuration - 1;
 
-    template <class bay>
-    float SumOnTime(float sum, bay& history)
+    template <class WindowT>
+    float SumOnTime(float sum, WindowT& history)
     {
-        return sum - history[0][kLatest] - history[0][kEarliest];
+        return sum - history[kLatest] - history[kEarliest];
     }
 
-    template <class bay>
-    float SumEarly(float sum, bay& history)
+    template <class WindowT>
+    float SumEarly(float sum, WindowT& history)
     {
-        return sum - history[0][kLate] - history[0][kLatest];
+        return sum - history[kLate] - history[kLatest];
     }
 
-    template <class bay>
-    float SumLate(float sum, bay& history)
+    template <class WindowT>
+    float SumLate(float sum, WindowT& history)
     {
-        return sum - history[0][kEarly] - history[0][kEarliest];
+        return sum - history[kEarly] - history[kEarliest];
     }
 
-    uint8_t DecideSymbol(bool adjustTiming)
+    uint8_t DecideSymbol(bool adjust_timing)
     {
-        float q_sum = q_history_[0].Sum();
-        float i_sum = i_history_[0].Sum();
+        float q_sum = q_history_.Sum();
+        float i_sum = i_history_.Sum();
 
-        if (adjustTiming)
+        if (adjust_timing)
         {
             float q_sum_late    = SumLate(q_sum, q_history_);
             float i_sum_late    = SumLate(i_sum, i_history_);
@@ -339,7 +339,7 @@ protected:
             float on_time_strength = Abs(q_sum_on_time) + Abs(i_sum_on_time);
             float early_strength   = Abs(q_sum_early)   + Abs(i_sum_early);
 
-            float threshold = 1.25 * on_time_strength;
+            float threshold = 1.25f * on_time_strength;
 
             early_ = (early_strength > threshold);
             late_ = (late_strength > threshold);

@@ -29,13 +29,20 @@
 namespace qpsk
 {
 
+template <uint32_t symbol_duration>
 class Correlator
 {
 protected:
+    static constexpr uint32_t kSymbolDuration = symbol_duration;
     static inline const uint8_t kAlignmentSequence[] = {2, 1};
-    static constexpr uint32_t kLength = sizeof(kAlignmentSequence);
+    static constexpr uint32_t kLength = 2;
 
-    Window<float, 3> history_;
+    static constexpr uint32_t kRipeAge = kSymbolDuration * kLength / 2.f;
+    static constexpr float kPeakThreshold = kSymbolDuration * kLength / 2.f;
+
+    Bay<float, kSymbolDuration, kLength> i_history_;
+    Bay<float, kSymbolDuration, kLength> q_history_;
+    Window<float, 3> correlation_history_;
     uint32_t age_;
     float maximum_;
     float correlation_;
@@ -49,18 +56,19 @@ public:
 
     void Reset(void)
     {
-        history_.Init();
+        i_history_.Init();
+        q_history_.Init();
+        correlation_history_.Init();
         age_ = 0;
         maximum_ = 0.f;
         correlation_ = 0.f;
         tilt_ = 0.5f;
     }
 
-    template <class bay>
-    bool Process(bay& i_history, bay& q_history)
+    bool Process(float i_sample, float q_sample)
     {
-        constexpr uint32_t kRipeAge = bay::length() * bay::width() / 2.f;
-        constexpr float kPeakThreshold = bay::length() * bay::width() / 2.f;
+        i_history_.Write(i_sample);
+        q_history_.Write(q_sample);
 
         correlation_ = 0.f;
 
@@ -72,8 +80,8 @@ public:
                 uint8_t expected_i = (symbol & 2);
                 uint8_t expected_q = (symbol & 1);
 
-                float i_sum = i_history[i].Sum();
-                float q_sum = q_history[i].Sum();
+                float i_sum = i_history_[i].Sum();
+                float q_sum = q_history_[i].Sum();
 
                 correlation_ += expected_i ? i_sum : -i_sum;
                 correlation_ += expected_q ? q_sum : -q_sum;
@@ -92,36 +100,32 @@ public:
         }
 
         // Detect a local maximum in the output of the correlator.
-        history_.Write(correlation_);
+        correlation_history_.Write(correlation_);
 
-        bool peak = (history_[1] == maximum_) && history_[0] < maximum_ &&
-            (maximum_ >= kPeakThreshold);
+        bool peak = (correlation_history_[1] == maximum_) &&
+                    (correlation_history_[0] < maximum_) &&
+                    (maximum_ >= kPeakThreshold);
 
         if (peak)
         {
             // We can approximate the sub-sample position of the peak by
             // comparing the relative correlation of the samples before and
             // after the raw peak.
-            float left = history_[1] - history_[2];
-            float right = history_[1] - history_[0];
+            float left = correlation_history_[1] - correlation_history_[2];
+            float right = correlation_history_[1] - correlation_history_[0];
             tilt_ = 0.5f * (left - right) / (left + right);
         }
 
-        uint32_t center = bay::length() / 2;
+        uint32_t center = kSymbolDuration / 2;
         uint8_t symbol = kAlignmentSequence[kLength - 1];
 
-        bool i_correlated = (symbol & 2) ? (i_history[0][center] > 0) :
-                                           (i_history[0][center] < 0);
+        bool i_correlated = (symbol & 2) ? (i_history_[0][center] > 0) :
+                                           (i_history_[0][center] < 0);
 
-        bool q_correlated = (symbol & 1) ? (q_history[0][center] > 0) :
-                                           (q_history[0][center] < 0);
+        bool q_correlated = (symbol & 1) ? (q_history_[0][center] > 0) :
+                                           (q_history_[0][center] < 0);
 
         return peak && i_correlated && q_correlated;
-    }
-
-    static constexpr uint32_t length(void)
-    {
-        return kLength;
     }
 
     float output(void)
