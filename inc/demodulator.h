@@ -56,7 +56,6 @@ public:
         i_history_.Init();
 
         decision_phase_ = 0.f;
-        inhibit_decision_ = false;
         skipped_samples_ = 0;
         carrier_sync_count_ = 0;
 
@@ -173,7 +172,6 @@ protected:
     Window<float, kSymbolDuration> i_history_;
 
     float decision_phase_;
-    bool inhibit_decision_;
     uint32_t skipped_samples_;
     uint32_t carrier_sync_count_;
 
@@ -218,12 +216,7 @@ protected:
         float phase = pll_.Phase();
         bool wrapped = prev_phase > phase;
 
-        if (inhibit_decision_)
-        {
-            decide_ = false;
-            inhibit_decision_ = false;
-        }
-        else if (!wrapped)
+        if (!wrapped)
         {
             decide_ = (prev_phase < decision_phase_) &&
                      (phase >= decision_phase_);
@@ -257,12 +250,16 @@ protected:
         {
             if (correlation_peaks_ == kNumCorrelationPeaks)
             {
-                state_ = STATE_OK;
-                // The averaged decision phase might be higher than our
-                // current phase, so inhibit the decision so we don't
-                // immediately demodulate a symbol off the end of the
-                // alignment sequence.
-                inhibit_decision_ = true;
+                // Make sure we don't immediately demodulate a symbol off
+                // the end of the alignment sequence, since the averaged
+                // decision phase might be just after our current phase.
+                float delta = decision_phase_ - pll_.Phase();
+                delta = FractionalPart(delta + 1.f);
+
+                if (delta > 0.5f)
+                {
+                    state_ = STATE_OK;
+                }
             }
             else if (correlator_.Process(i, q))
             {
