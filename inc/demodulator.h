@@ -202,8 +202,8 @@ protected:
         float q_osc = Sine(phase);
 
         // carrier rejection filter
-        float i = crf_i_.Process(sample * i_osc);
-        float q = crf_q_.Process(sample * -q_osc);
+        float i = crf_i_.Process(2.f * sample * i_osc);
+        float q = crf_q_.Process(2.f * sample * -q_osc);
 
         float phase_error;
 
@@ -217,7 +217,7 @@ protected:
         }
 
         // PLL to lock onto the carrier
-        pll_.Process(phase_error / 8.f);
+        pll_.Process(phase_error / 16.f);
 
         q_history_.Write(q);
         i_history_.Write(i);
