@@ -195,15 +195,12 @@ protected:
 
     bool Demodulate(uint8_t& symbol, float sample)
     {
-        float phase = pll_.Phase();
-
-        // demodulate
-        float i_osc = Cosine(phase);
-        float q_osc = Sine(phase);
-
-        // carrier rejection filter
+        float i_osc = Cosine(pll_.Phase());
+        float q_osc = -Sine(pll_.Phase());
         float i = crf_i_.Process(2.f * sample * i_osc);
-        float q = crf_q_.Process(2.f * sample * -q_osc);
+        float q = crf_q_.Process(2.f * sample * q_osc);
+        q_history_.Write(q);
+        i_history_.Write(i);
 
         float phase_error;
 
@@ -216,38 +213,30 @@ protected:
             phase_error = (q > 0 ? i : -i) - (i > 0 ? q : -q);
         }
 
-        // PLL to lock onto the carrier
+        float prev_phase = pll_.Phase();
         pll_.Process(phase_error / 16.f);
-
-        q_history_.Write(q);
-        i_history_.Write(i);
-
-        float prev_phase = phase;
-        phase = pll_.Phase();
+        float phase = pll_.Phase();
         bool wrapped = prev_phase > phase;
-
-        bool decide;
 
         if (inhibit_decision_)
         {
-            decide = false;
+            decide_ = false;
             inhibit_decision_ = false;
         }
         else if (!wrapped)
         {
-            decide = (prev_phase < decision_phase_) &&
+            decide_ = (prev_phase < decision_phase_) &&
                      (phase >= decision_phase_);
         }
         else
         {
-            decide = (prev_phase < decision_phase_) ||
+            decide_ = (prev_phase < decision_phase_) ||
                      (phase >= decision_phase_);
         }
 
-        decide_ = decide;
         bool symbol_complete = false;
 
-        if (decide)
+        if (decide_)
         {
             // In carrier sync mode, we just let the PLL stabilize until we
             // consistently decode a string of 0s.
