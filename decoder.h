@@ -53,7 +53,7 @@ template <uint32_t sample_rate,
           uint32_t symbol_rate,
           uint32_t packet_size,
           uint32_t block_size,
-          uint32_t fifo_capacity = 1024>
+          uint32_t fifo_capacity = 256>
 class Decoder
 {
 public:
@@ -100,7 +100,7 @@ public:
         samples_.Push(sample);
     }
 
-    void Push(float *buffer, uint32_t length)
+    void Push(float* buffer, uint32_t length)
     {
         for (uint32_t i = 0; i < length; i++)
         {
