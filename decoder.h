@@ -47,7 +47,6 @@ enum Error
     ERROR_CRC,
     ERROR_OVERFLOW,
     ERROR_ABORT,
-    ERROR_TIMEOUT,
 };
 
 template <uint32_t sample_rate,
