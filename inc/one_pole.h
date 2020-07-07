@@ -28,7 +28,7 @@
 namespace qpsk
 {
 
-class OnePoleLowpass
+class OnePole
 {
 protected:
     static constexpr float Factor(float freq)
@@ -37,54 +37,72 @@ protected:
     }
 
     float factor_;
-    float history_;
+    float lp_;
+    float hp_;
 
 public:
     void Init(float normalized_frequency)
     {
         factor_ = Factor(normalized_frequency);
-        history_ = 0;
+        Reset();
     }
 
     void Reset(void)
     {
-        history_ = 0;
+        lp_ = 0.f;
+        hp_ = 0.f;
     }
 
-    float Process(float in)
+    void Process(float in)
     {
-        history_ += factor_ * (in - history_);
-        return history_;
+        lp_ += factor_ * (in - lp_);
+        hp_ = in - lp_;
     }
 
-    float output(void)
+    float lowpass(void)
     {
-        return history_;
+        return lp_;
+    }
+
+    float highpass(void)
+    {
+        return hp_;
     }
 };
 
-class OnePoleHighpass : public OnePoleLowpass
+class OnePoleLowpass : public OnePole
 {
 protected:
-    using super = OnePoleLowpass;
-    float output_;
+    using super = OnePole;
 
 public:
-    void Init(float normalized_frequency)
-    {
-        super::Init(normalized_frequency);
-        output_ = 0.f;
-    }
-
     float Process(float in)
     {
-        output_ = in - super::Process(in);
-        return output_;
+        super::Process(in);
+        return super::lp_;
     }
 
     float output(void)
     {
-        return output_;
+        return super::lp_;
+    }
+};
+
+class OnePoleHighpass : public OnePole
+{
+protected:
+    using super = OnePole;
+
+public:
+    float Process(float in)
+    {
+        super::Process(in);
+        return super::hp_;
+    }
+
+    float output(void)
+    {
+        return super::hp_;
     }
 };
 
