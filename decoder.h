@@ -84,7 +84,7 @@ public:
         abort_ = true;
     }
 
-    Error GetError(void)
+    Error error(void)
     {
         return (state_ == STATE_ERROR) ? error_ : ERROR_NONE;
     }
@@ -108,12 +108,12 @@ public:
         }
     }
 
-    uint32_t* GetBlock(void)
+    uint32_t* block_data(void)
     {
         return block_.data();
     }
 
-    Result Receive(void)
+    Result Process(void)
     {
         if (state_ == STATE_WRITE)
         {
