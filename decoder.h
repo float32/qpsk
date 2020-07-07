@@ -184,8 +184,6 @@ public:
 
     // Accessors for debug and simulation
     uint8_t* GetPacket(void)         {return packet_.data();}
-    uint32_t CalculatedCRC(void)     {return packet_.CalculatedCRC();}
-    uint32_t ExpectedCRC(void)       {return packet_.ExpectedCRC();}
     uint8_t PacketByte(void)         {return packet_.last_byte();}
     float PllPhase(void)             {return demodulator_.PllPhase();}
     float PllPhaseError(void)        {return demodulator_.PllPhaseError();}
