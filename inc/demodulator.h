@@ -87,7 +87,7 @@ public:
         float env = Abs(sample);
 
         follower_.Process(env);
-        float level = SignalPower();
+        float level = signal_power();
         sample *= agc_gain_;
 
         if (state_ == STATE_WAIT_TO_SETTLE)
@@ -127,18 +127,18 @@ public:
     }
 
     // Accessors for debug and simulation
-    uint32_t state(void)             {return state_;}
-    float    PllPhase(void)          {return pll_.Phase();}
-    float    PllPhaseError(void)     {return pll_.PhaseError();}
-    float    PllPhaseIncrement(void) {return pll_.PhaseIncrement();}
-    float    DecisionPhase(void)     {return decision_phase_;}
-    float    SignalPower(void)       {return follower_.Output();}
-    float    RecoveredI(void)        {return crf_i_.output();}
-    float    RecoveredQ(void)        {return crf_q_.output();}
-    float    Correlation(void)       {return correlator_.output();}
-    bool     Early(void)             {return early_;}
-    bool     Late(void)              {return late_;}
-    bool     Decide(void)            {return decide_;}
+    uint32_t state(void)          {return state_;}
+    float    pll_phase(void)      {return pll_.phase();}
+    float    pll_error(void)      {return pll_.error();}
+    float    pll_step(void)       {return pll_.step();}
+    float    decision_phase(void) {return decision_phase_;}
+    float    signal_power(void)   {return follower_.output();}
+    float    recovered_i(void)    {return crf_i_.output();}
+    float    recovered_q(void)    {return crf_q_.output();}
+    float    correlation(void)    {return correlator_.output();}
+    bool     early(void)          {return early_;}
+    bool     late(void)           {return late_;}
+    bool     decide(void)         {return decide_;}
 
 protected:
     static constexpr uint32_t kSettlingTime = sample_rate * 0.25f;
@@ -193,8 +193,8 @@ protected:
 
     bool Demodulate(uint8_t& symbol, float sample)
     {
-        float i_osc = Cosine(pll_.Phase());
-        float q_osc = -Sine(pll_.Phase());
+        float i_osc = Cosine(pll_.phase());
+        float q_osc = -Sine(pll_.phase());
         float i = crf_i_.Process(2.f * sample * i_osc);
         float q = crf_q_.Process(2.f * sample * q_osc);
         q_history_.Write(q);
@@ -211,9 +211,9 @@ protected:
             phase_error = (q > 0 ? i : -i) - (i > 0 ? q : -q);
         }
 
-        float prev_phase = pll_.Phase();
+        float prev_phase = pll_.phase();
         pll_.Process(phase_error / 16.f);
-        float phase = pll_.Phase();
+        float phase = pll_.phase();
         bool wrapped = prev_phase > phase;
 
         if (!wrapped)
@@ -253,7 +253,7 @@ protected:
                 // Make sure we don't immediately demodulate a symbol off
                 // the end of the alignment sequence, since the averaged
                 // decision phase might be just after our current phase.
-                float delta = decision_phase_ - pll_.Phase();
+                float delta = decision_phase_ - pll_.phase();
                 delta = FractionalPart(delta + 1.f);
 
                 if (delta > 0.5f)
@@ -265,11 +265,11 @@ protected:
             {
                 correlation_peaks_++;
                 float correlated_phase = FractionalPart(prev_phase +
-                    pll_.PhaseIncrement() * correlator_.tilt());
+                    pll_.step() * correlator_.tilt());
                 avg_phase_x_.Write(Cosine(correlated_phase));
                 avg_phase_y_.Write(Sine(correlated_phase));
                 decision_phase_ =
-                    VectorToPhase(avg_phase_x_.Sum(), avg_phase_y_.Sum());
+                    VectorToPhase(avg_phase_x_.sum(), avg_phase_y_.sum());
             }
         }
         else if (state_ == STATE_OK)
@@ -309,8 +309,8 @@ protected:
 
     uint8_t DecideSymbol(bool adjust_timing)
     {
-        float q_sum = q_history_.Sum();
-        float i_sum = i_history_.Sum();
+        float q_sum = q_history_.sum();
+        float i_sum = i_history_.sum();
 
         if (adjust_timing)
         {

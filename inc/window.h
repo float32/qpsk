@@ -72,12 +72,12 @@ public:
         return delay_line_.Tap(i);
     }
 
-    T Sum(void) const
+    T sum(void)
     {
         return sum_;
     }
 
-    T Average(void) const
+    T average(void)
     {
         return sum_ / length_;
     }
@@ -116,7 +116,7 @@ public:
             out = window_[i][length_ - 1];
             window_[i].Write(in);
             in = out;
-            sum_ += window_[i].Sum();
+            sum_ += window_[i].sum();
         }
     }
 
@@ -125,12 +125,12 @@ public:
         return window_[i];
     }
 
-    T Sum(void) const
+    T sum(void)
     {
         return sum_;
     }
 
-    T Average(void) const
+    T average(void)
     {
         return sum_ / (length_ * width_);
     }

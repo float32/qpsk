@@ -57,7 +57,7 @@ public:
         return history_;
     }
 
-    float Output(void)
+    float output(void)
     {
         return history_;
     }
@@ -82,7 +82,7 @@ public:
         return output_;
     }
 
-    float Output(void)
+    float output(void)
     {
         return output_;
     }

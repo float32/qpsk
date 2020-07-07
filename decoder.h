@@ -91,7 +91,7 @@ public:
 
     void Push(float sample)
     {
-        if (samples_.Full() && state_ != STATE_WRITE && state_ != STATE_END)
+        if (samples_.full() && state_ != STATE_WRITE && state_ != STATE_END)
         {
             state_ = STATE_ERROR;
             error_ = ERROR_OVERFLOW;
@@ -150,14 +150,14 @@ public:
                 {
                     packet_.WriteSymbol(symbol);
 
-                    if (packet_.Complete())
+                    if (packet_.full())
                     {
-                        if (packet_.Valid())
+                        if (packet_.valid())
                         {
                             block_.AppendPacket(packet_);
                             packet_.Reset();
 
-                            if (block_.Complete())
+                            if (block_.full())
                             {
                                 state_ = STATE_WRITE;
                                 return RESULT_BLOCK_COMPLETE;
@@ -183,24 +183,24 @@ public:
     }
 
     // Accessors for debug and simulation
-    uint8_t* GetPacket(void)         {return packet_.data();}
-    uint8_t PacketByte(void)         {return packet_.last_byte();}
-    float PllPhase(void)             {return demodulator_.PllPhase();}
-    float PllPhaseError(void)        {return demodulator_.PllPhaseError();}
-    float PllPhaseIncrement(void)    {return demodulator_.PllPhaseIncrement();}
-    float DecisionPhase(void)        {return demodulator_.DecisionPhase();}
-    uint32_t SymbolsAvailable(void)  {return recent_symbols_.Available();}
-    bool PopSymbol(uint8_t& symbol)  {return recent_symbols_.Pop(symbol);}
-    float SignalPower(void)          {return demodulator_.SignalPower();}
+    uint8_t* packet_data(void)       {return packet_.data();}
+    uint8_t  packet_byte(void)       {return packet_.last_byte();}
+    float    pll_phase(void)         {return demodulator_.pll_phase();}
+    float    pll_error(void)         {return demodulator_.pll_error();}
+    float    pll_step(void)          {return demodulator_.pll_step();}
+    float    decision_phase(void)    {return demodulator_.decision_phase();}
+    uint32_t symbols_available(void) {return recent_symbols_.available();}
+    bool     PopSymbol(uint8_t& symbol) {return recent_symbols_.Pop(symbol);}
+    float    signal_power(void)      {return demodulator_.signal_power();}
     uint32_t state(void)             {return state_;}
-    float RecoveredI(void)           {return demodulator_.RecoveredI();}
-    float RecoveredQ(void)           {return demodulator_.RecoveredQ();}
-    float Correlation(void)          {return demodulator_.Correlation();}
-    uint32_t DemodulatorState(void)  {return demodulator_.state();}
-    uint8_t LastSymbol(void)         {return last_symbol_;}
-    bool    Early(void)              {return demodulator_.Early();}
-    bool    Late(void)               {return demodulator_.Late();}
-    bool    Decide(void)             {return demodulator_.Decide();}
+    float    recovered_i(void)       {return demodulator_.recovered_i();}
+    float    recovered_q(void)       {return demodulator_.recovered_q();}
+    float    correlation(void)       {return demodulator_.correlation();}
+    uint32_t demodulator_state(void) {return demodulator_.state();}
+    uint8_t  last_symbol(void)       {return last_symbol_;}
+    bool     early(void)             {return demodulator_.early();}
+    bool     late(void)              {return demodulator_.late();}
+    bool     decide(void)            {return demodulator_.decide();}
 
 
 protected:

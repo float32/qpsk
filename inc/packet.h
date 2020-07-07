@@ -116,17 +116,17 @@ public:
         }
     }
 
-    bool Complete(void)
+    bool full(void)
     {
         return size_ == sizeof(QPSKPacket);
     }
 
-    uint32_t CalculatedCRC(void)
+    uint32_t calculated_crc(void)
     {
         return crc_.crc();
     }
 
-    uint32_t ExpectedCRC(void)
+    uint32_t expected_crc(void)
     {
         #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
             return __builtin_bswap32(packet_.crc);
@@ -135,9 +135,9 @@ public:
         #endif
     }
 
-    bool Valid(void)
+    bool valid(void)
     {
-        return Complete() && (CalculatedCRC() == ExpectedCRC());
+        return full() && (calculated_crc() == expected_crc());
     }
 
     uint8_t* data(void)
@@ -179,7 +179,7 @@ public:
         }
     }
 
-    bool Complete(void)
+    bool full(void)
     {
         return size_ == block_size;
     }

@@ -54,19 +54,19 @@ public:
         head_.store(tail, std::memory_order_release);
     }
 
-    bool Empty(void)
+    bool empty(void)
     {
-        return !Available();
+        return !available();
     }
 
-    uint32_t Available(void)
+    uint32_t available(void)
     {
         uint32_t head = head_.load(std::memory_order_relaxed);
         uint32_t tail = tail_.load(std::memory_order_acquire);
         return tail - head;
     }
 
-    bool Full(void)
+    bool full(void)
     {
         uint32_t tail = tail_.load(std::memory_order_relaxed);
         uint32_t head = head_.load(std::memory_order_acquire);
@@ -131,14 +131,14 @@ protected:
     using super = Fifo<T, size>;
 
 public:
-    bool Empty(void)
+    bool empty(void)
     {
-        return !Available();
+        return !available();
     }
 
-    uint32_t Available(void)
+    uint32_t available(void)
     {
-        uint32_t available = super::Available();
+        uint32_t available = super::available();
         return (available < size) ? available : size;
     }
 

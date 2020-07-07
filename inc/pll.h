@@ -60,17 +60,17 @@ public:
         phase_error_ = 0.f;
     }
 
-    float Phase(void)
+    float phase(void)
     {
         return phase_;
     }
 
-    float PhaseIncrement(void)
+    float step(void)
     {
         return phase_increment_;
     }
 
-    float PhaseError(void)
+    float error(void)
     {
         return phase_error_;
     }

@@ -79,8 +79,8 @@ public:
                 uint8_t expected_i = (symbol & 2);
                 uint8_t expected_q = (symbol & 1);
 
-                float i_sum = i_history_[i].Sum();
-                float q_sum = q_history_[i].Sum();
+                float i_sum = i_history_[i].sum();
+                float q_sum = q_history_[i].sum();
 
                 correlation += expected_i ? i_sum : -i_sum;
                 correlation += expected_q ? q_sum : -q_sum;
