@@ -77,6 +77,7 @@ public:
         block_.Clear();
 
         abort_ = false;
+        error_ = ERROR_NONE;
     }
 
     void Abort(void)
@@ -93,8 +94,7 @@ public:
     {
         if (samples_.full() && state_ != STATE_WRITE && state_ != STATE_END)
         {
-            state_ = STATE_ERROR;
-            error_ = ERROR_OVERFLOW;
+            ReportError(ERROR_OVERFLOW);
         }
 
         samples_.Push(sample);
@@ -131,8 +131,7 @@ public:
         {
             if (abort_)
             {
-                state_ = STATE_ERROR;
-                error_ = ERROR_ABORT;
+                ReportError(ERROR_ABORT);
                 return RESULT_ERROR;
             }
 
@@ -165,8 +164,7 @@ public:
                         }
                         else
                         {
-                            state_ = STATE_ERROR;
-                            error_ = ERROR_CRC;
+                            ReportError(ERROR_CRC);
                         }
 
                         return RESULT_PACKET_COMPLETE;
@@ -233,8 +231,6 @@ protected:
     void BeginSync(void)
     {
         state_ = STATE_SYNC;
-        error_ = ERROR_NONE;
-
         marker_count_ = kMarkerLength;
         marker_code_ = 0;
     }
@@ -257,8 +253,7 @@ protected:
                 return;
 
             default:
-                state_ = STATE_ERROR;
-                error_ = ERROR_SYNC;
+                ReportError(ERROR_SYNC);
                 return;
             }
         }
@@ -266,6 +261,12 @@ protected:
         {
             state_ = STATE_SYNC;
         }
+    }
+
+    void ReportError(Error error)
+    {
+        state_ = STATE_ERROR;
+        error_ = error;
     }
 };
 
