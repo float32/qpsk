@@ -111,58 +111,38 @@ public:
             return RESULT_END;
         }
 
+        Result result = RESULT_NONE;
         float sample;
-        while (samples_.Pop(sample))
+
+        while (result == RESULT_NONE && samples_.Pop(sample))
         {
+            uint8_t symbol;
+
             if (abort_)
             {
-                ReportError(ERROR_ABORT);
-                return RESULT_ERROR;
+                result = ReportError(ERROR_ABORT);
             }
-
-            uint8_t symbol;
-            if (demodulator_.Process(symbol, sample))
+            else if (demodulator_.Process(symbol, sample))
             {
                 recent_symbols_.Push(symbol);
                 last_symbol_ = symbol;
 
                 if (state_ == STATE_SYNC)
                 {
-                    Sync(symbol);
+                    result = Sync(symbol);
                 }
                 else if (state_ == STATE_DECODE)
                 {
-                    packet_.WriteSymbol(symbol);
-
-                    if (packet_.full())
-                    {
-                        if (packet_.valid())
-                        {
-                            block_.AppendPacket(packet_);
-                            packet_.Reset();
-
-                            if (block_.full())
-                            {
-                                state_ = STATE_WRITE;
-                                return RESULT_BLOCK_COMPLETE;
-                            }
-                        }
-                        else
-                        {
-                            ReportError(ERROR_CRC);
-                        }
-
-                        return RESULT_PACKET_COMPLETE;
-                    }
+                    result = Decode(symbol);
                 }
                 else if (state_ == STATE_ERROR)
                 {
-                    return RESULT_ERROR;
+                    result = RESULT_ERROR;
                 }
             }
         }
 
-        return RESULT_NONE;
+        return result;
     }
 
     void Abort(void)
@@ -235,38 +215,69 @@ protected:
         marker_code_ = 0;
     }
 
-    void Sync(uint8_t symbol)
+    Result Sync(uint8_t symbol)
     {
         marker_code_ = (marker_code_ << 2) | symbol;
         marker_count_--;
 
         if (marker_count_ == 0)
         {
-            switch (marker_code_)
+            if (marker_code_ == kBlockMarker)
             {
-            case kBlockMarker:
                 state_ = STATE_DECODE;
-                break;
-
-            case kEndMarker:
+                return RESULT_NONE;
+            }
+            else if (marker_code_ == kEndMarker)
+            {
                 state_ = STATE_END;
-                return;
-
-            default:
-                ReportError(ERROR_SYNC);
-                return;
+                return RESULT_END;
+            }
+            else
+            {
+                return ReportError(ERROR_SYNC);
             }
         }
         else
         {
-            state_ = STATE_SYNC;
+            return RESULT_NONE;
         }
     }
 
-    void ReportError(Error error)
+    Result Decode(uint8_t symbol)
+    {
+        packet_.WriteSymbol(symbol);
+
+        if (packet_.full())
+        {
+            if (packet_.valid())
+            {
+                block_.AppendPacket(packet_);
+                packet_.Reset();
+
+                if (block_.full())
+                {
+                    state_ = STATE_WRITE;
+                    return RESULT_BLOCK_COMPLETE;
+                }
+            }
+            else
+            {
+                return ReportError(ERROR_CRC);
+            }
+
+            return RESULT_PACKET_COMPLETE;
+        }
+        else
+        {
+            return RESULT_NONE;
+        }
+    }
+
+    Result ReportError(Error error)
     {
         state_ = STATE_ERROR;
         error_ = error;
+        return RESULT_ERROR;
     }
 };
 
