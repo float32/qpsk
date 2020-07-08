@@ -80,16 +80,6 @@ public:
         error_ = ERROR_NONE;
     }
 
-    void Abort(void)
-    {
-        abort_ = true;
-    }
-
-    Error error(void)
-    {
-        return (state_ == STATE_ERROR) ? error_ : ERROR_NONE;
-    }
-
     void Push(float sample)
     {
         if (samples_.full() && state_ != STATE_WRITE && state_ != STATE_END)
@@ -106,11 +96,6 @@ public:
         {
             Push(buffer[i]);
         }
-    }
-
-    uint32_t* block_data(void)
-    {
-        return block_.data();
     }
 
     Result Process(void)
@@ -178,6 +163,21 @@ public:
         }
 
         return RESULT_NONE;
+    }
+
+    void Abort(void)
+    {
+        abort_ = true;
+    }
+
+    Error error(void)
+    {
+        return (state_ == STATE_ERROR) ? error_ : ERROR_NONE;
+    }
+
+    uint32_t* block_data(void)
+    {
+        return block_.data();
     }
 
     // Accessors for debug and simulation
