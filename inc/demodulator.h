@@ -118,12 +118,24 @@ public:
                 state_ = STATE_WAIT_TO_SETTLE;
             }
         }
-        else
+        else if (state_ != STATE_ERROR)
         {
-            return Demodulate(symbol, sample);
+            if (level < kLevelThreshold)
+            {
+                state_ = STATE_ERROR;
+            }
+            else
+            {
+                return Demodulate(symbol, sample);
+            }
         }
 
         return false;
+    }
+
+    bool error(void)
+    {
+        return state_ == STATE_ERROR;
     }
 
     // Accessors for debug and simulation
@@ -155,6 +167,7 @@ protected:
         STATE_CARRIER_SYNC,
         STATE_ALIGN,
         STATE_OK,
+        STATE_ERROR,
     };
 
     State state_;

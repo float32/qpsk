@@ -122,6 +122,10 @@ public:
             {
                 result = ReportError(ERROR_ABORT);
             }
+            else if (demodulator_.error())
+            {
+                result = ReportError(ERROR_SYNC);
+            }
             else if (demodulator_.Process(symbol, sample))
             {
                 recent_symbols_.Push(symbol);
