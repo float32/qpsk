@@ -62,7 +62,6 @@ public:
         demodulator_.Init();
         packet_.Init(crc_seed);
         block_.Init();
-        recent_symbols_.Init();
         last_symbol_ = 0;
         Reset();
     }
@@ -128,7 +127,6 @@ public:
             }
             else if (demodulator_.Process(symbol, sample))
             {
-                recent_symbols_.Push(symbol);
                 last_symbol_ = symbol;
 
                 if (state_ == STATE_SYNC)
@@ -171,8 +169,6 @@ public:
     float    pll_error(void)         {return demodulator_.pll_error();}
     float    pll_step(void)          {return demodulator_.pll_step();}
     float    decision_phase(void)    {return demodulator_.decision_phase();}
-    uint32_t symbols_available(void) {return recent_symbols_.available();}
-    bool     PopSymbol(uint8_t& symbol) {return recent_symbols_.Pop(symbol);}
     float    signal_power(void)      {return demodulator_.signal_power();}
     uint32_t state(void)             {return state_;}
     float    recovered_i(void)       {return demodulator_.recovered_i();}
@@ -201,7 +197,6 @@ protected:
     };
 
     RingBuffer<float, fifo_capacity> samples_;
-    RingBuffer<uint8_t, 128> recent_symbols_; // For debug
     uint8_t last_symbol_; // For sim
     Demodulator<sample_rate, symbol_rate> demodulator_;
     State state_;
