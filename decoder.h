@@ -196,7 +196,7 @@ protected:
         STATE_ERROR,
     };
 
-    RingBuffer<float, fifo_capacity> samples_;
+    Fifo<float, fifo_capacity> samples_;
     uint8_t last_symbol_; // For sim
     Demodulator<sample_rate, symbol_rate> demodulator_;
     State state_;
