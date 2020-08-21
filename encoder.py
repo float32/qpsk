@@ -184,9 +184,12 @@ class Arrangement:
                 block_size, fill_byte, write_time, data):
         self._blocks = []
         for (erase_time, page_data) in Pages(data, flash_spec, reserved_size):
-            for block_data in Blocks(page_data, block_size, fill_byte):
-                wait_time = (erase_time + write_time) / 1000
-                self._blocks.append((block_data, wait_time))
+            blocks = Blocks(page_data, block_size, fill_byte)
+            for i, block_data in enumerate(blocks):
+                wait_time = write_time;
+                if i == 0:
+                    wait_time += erase_time
+                self._blocks.append((block_data, wait_time / 1000))
 
     def __iter__(self):
         return iter(self._blocks)
