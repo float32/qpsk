@@ -70,9 +70,9 @@ public:
             bit_num_++;
         }
 
-        // If the syndrome is 0, there was no error detected. If it's a power of 2,
-        // then one of the parity bits is flipped, which we don't care about.
-        // Otherwise, do error correction.
+        // If the syndrome is 0, there was no error detected. If it's a power
+        // of 2, then one of the parity bits is flipped, which we don't care
+        // about. Otherwise, do error correction.
         if ((syndrome_ & (syndrome_ - 1)) != 0)
         {
             uint32_t width = sizeof(syndrome_) * 8 - __builtin_clz(syndrome_);
