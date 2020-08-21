@@ -229,7 +229,7 @@ class Encoder:
         return self._encode_blank(1.0)
 
     def _encode_resync(self):
-        return self._encode_blank(0.025) # PLL resync
+        return self._encode_blank(0.0375) # PLL resync
 
     def _encode_outro(self):
         symbols = self._encode_resync()
