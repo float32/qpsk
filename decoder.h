@@ -24,6 +24,7 @@
 #pragma once
 
 #include <cstdint>
+#include <atomic>
 #include "inc/demodulator.h"
 #include "inc/packet.h"
 #include "inc/fifo.h"
@@ -76,17 +77,20 @@ public:
         block_.Clear();
 
         abort_ = false;
+        overflow_ = false;
         error_ = ERROR_NONE;
     }
 
     void Push(float sample)
     {
-        if (samples_.full() && state_ != STATE_WRITE && state_ != STATE_END)
+        if (!samples_.Push(sample))
         {
-            ReportError(ERROR_OVERFLOW);
+            if (state_ != STATE_WRITE && state_ != STATE_END)
+            {
+                overflow_ = true;
+                return;
+            }
         }
-
-        samples_.Push(sample);
     }
 
     void Push(float* buffer, uint32_t length)
@@ -104,6 +108,7 @@ public:
             block_.Clear();
             demodulator_.BeginCarrierSync();
             BeginSync();
+            samples_.Flush();
         }
         else if (state_ == STATE_END)
         {
@@ -120,6 +125,10 @@ public:
             if (abort_)
             {
                 result = ReportError(ERROR_ABORT);
+            }
+            else if (overflow_)
+            {
+                result = ReportError(ERROR_OVERFLOW);
             }
             else if (demodulator_.error())
             {
@@ -205,7 +214,8 @@ protected:
     uint32_t marker_count_;
     uint32_t marker_code_;
     Block<block_size> block_;
-    bool abort_;
+    std::atomic_bool abort_;
+    std::atomic_bool overflow_;
 
     void BeginSync(void)
     {
