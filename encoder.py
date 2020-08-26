@@ -232,7 +232,9 @@ class Encoder:
         return self._encode_blank(1.0)
 
     def _encode_resync(self):
-        return self._encode_blank(0.0375) # PLL resync
+        # We let the PLL sync to a string of zeros, then append a single 3
+        # to mark the end of sync and start of alignment.
+        return self._encode_blank(0.0375) + [3]
 
     def _encode_outro(self):
         symbols = self._encode_resync()

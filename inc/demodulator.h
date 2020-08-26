@@ -242,20 +242,32 @@ protected:
 
         if (state_ == STATE_CARRIER_SYNC)
         {
-            // In carrier sync mode, we just let the PLL stabilize until we
-            // consistently decode a string of 0s.
+            // We let the PLL sync to a string of zeros, then wait for the
+            // nonzero symbol which marks the end of sync and start of
+            // alignment. Only then do we actually enter the alignment state,
+            // since the alignment correlator is a performance bottleneck.
+            // This allows us to work with less processing power even if the
+            // CPU couldn't otherwise run the correlator in real-time, since
+            // alignment lasts only a few milliseconds and the input is
+            // buffered in a FIFO.
             if (decide_)
             {
-                if (DecideSymbol(false) == 0)
+                uint8_t symbol = DecideSymbol(false);
+
+                if (carrier_sync_count_ < kCarrierSyncLength)
                 {
-                    if (++carrier_sync_count_ == kCarrierSyncLength)
+                    if (symbol == 0)
                     {
-                        BeginAlignment();
+                        carrier_sync_count_++;
+                    }
+                    else
+                    {
+                        carrier_sync_count_ = 0;
                     }
                 }
-                else
+                else if (symbol != 0)
                 {
-                    carrier_sync_count_ = 0;
+                    BeginAlignment();
                 }
             }
         }
