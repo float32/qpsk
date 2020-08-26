@@ -75,16 +75,25 @@ public:
 
     bool Push(T item)
     {
+        return Push(&item, 1);
+    }
+
+    bool Push(T* buffer, uint32_t length)
+    {
         uint32_t tail = tail_.load(std::memory_order_relaxed);
         uint32_t head = head_.load(std::memory_order_acquire);
 
-        if (tail - head > size - 1)
+        if (tail - head > size - length)
         {
             return false;
         }
 
-        data_[tail % size] = item;
-        tail_.store(tail + 1, std::memory_order_release);
+        for (uint32_t i = 0; i < length; i++)
+        {
+            data_[(tail + i) % size] = buffer[i];
+        }
+
+        tail_.store(tail + length, std::memory_order_release);
         return true;
     }
 

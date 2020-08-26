@@ -81,9 +81,9 @@ public:
         error_ = ERROR_NONE;
     }
 
-    void Push(float sample)
+    void Push(float* buffer, uint32_t length)
     {
-        if (!samples_.Push(sample))
+        if (!samples_.Push(buffer, length))
         {
             if (state_ != STATE_WRITE && state_ != STATE_END)
             {
@@ -93,12 +93,9 @@ public:
         }
     }
 
-    void Push(float* buffer, uint32_t length)
+    void Push(float sample)
     {
-        for (uint32_t i = 0; i < length; i++)
-        {
-            Push(buffer[i]);
-        }
+        Push(&sample, 1);
     }
 
     Result Process(void)
