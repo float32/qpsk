@@ -188,7 +188,7 @@ public:
     bool     early(void)             {return demodulator_.early();}
     bool     late(void)              {return demodulator_.late();}
     bool     decide(void)            {return demodulator_.decide();}
-
+    uint32_t samples_available(void) {return samples_.available();}
 
 protected:
     static constexpr uint32_t kMarkerLength = 16;
