@@ -71,25 +71,21 @@ public:
     {
         demodulator_.Reset();
         BeginSync();
-        samples_.Flush();
 
         packet_.Reset();
         block_.Clear();
 
-        abort_ = false;
-        overflow_ = false;
+        abort_.store(false, std::memory_order_relaxed);
         error_ = ERROR_NONE;
+
+        FlushSamples();
     }
 
     void Push(float* buffer, uint32_t length)
     {
         if (!samples_.Push(buffer, length))
         {
-            if (state_ != STATE_WRITE && state_ != STATE_END)
-            {
-                overflow_ = true;
-                return;
-            }
+            overflow_.store(true, std::memory_order_release);
         }
     }
 
@@ -105,7 +101,7 @@ public:
             block_.Clear();
             demodulator_.BeginCarrierSync();
             BeginSync();
-            samples_.Flush();
+            FlushSamples();
         }
         else if (state_ == STATE_END)
         {
@@ -119,11 +115,11 @@ public:
         {
             uint8_t symbol;
 
-            if (abort_)
+            if (abort_.load(std::memory_order_relaxed))
             {
                 result = ReportError(ERROR_ABORT);
             }
-            else if (overflow_)
+            else if (overflow_.load(std::memory_order_relaxed))
             {
                 result = ReportError(ERROR_OVERFLOW);
             }
@@ -155,7 +151,7 @@ public:
 
     void Abort(void)
     {
-        abort_ = true;
+        abort_.store(true, std::memory_order_relaxed);
     }
 
     Error error(void)
@@ -213,6 +209,13 @@ protected:
     Block<block_size> block_;
     std::atomic_bool abort_;
     std::atomic_bool overflow_;
+    static_assert(std::atomic_bool::is_always_lock_free);
+
+    void FlushSamples(void)
+    {
+        samples_.Flush();
+        overflow_.store(false, std::memory_order_release);
+    }
 
     void BeginSync(void)
     {
