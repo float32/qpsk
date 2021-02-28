@@ -3,7 +3,7 @@
 # MIT License
 #
 # Copyright 2013 Emilie Gillet.
-# Copyright 2020 Tyler Coy
+# Copyright 2021 Tyler Coy
 #
 # Author: Emilie Gillet (emilie.o.gillet@gmail.com)
 # Author: Tyler Coy (alrightdevices.com)
