@@ -159,7 +159,7 @@ public:
         return (state_ == STATE_ERROR) ? error_ : ERROR_NONE;
     }
 
-    uint32_t* block_data(void)
+    const uint32_t* block_data(void)
     {
         return block_.data();
     }
