@@ -188,6 +188,7 @@ protected:
     static constexpr uint32_t kBlockMarker = 0xCCCCCCCC;
     static constexpr uint32_t kEndMarker = 0xF0F0F0F0;
     static_assert(block_size % packet_size == 0);
+    static_assert(packet_size % 4 == 0);
 
     enum State
     {
