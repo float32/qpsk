@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include "util.h"
 
 namespace qpsk
 {
@@ -33,7 +34,7 @@ class OnePole
 protected:
     static constexpr float Factor(float freq)
     {
-        return 1 - std::exp(-2 * M_PI * freq);
+        return 1 - std::exp(-2 * kPi * freq);
     }
 
     float factor_;

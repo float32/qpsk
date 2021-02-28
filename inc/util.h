@@ -27,6 +27,8 @@
 namespace qpsk
 {
 
+static constexpr float kPi = 3.141592654f;
+
 inline float Abs(float x)
 {
     return std::fabs(x);
@@ -161,11 +163,11 @@ inline float RestrictedArcCot(float x)
 {
     if (x < 0.f)
     {
-        return M_PI_2 + RestrictedArcTan(-x);
+        return kPi / 2.f + RestrictedArcTan(-x);
     }
     else
     {
-        return M_PI_2 - RestrictedArcTan(x);
+        return kPi / 2.f - RestrictedArcTan(x);
     }
 }
 
@@ -178,18 +180,18 @@ inline float VectorToAngle(float x, float y)
     else if (Abs(y) < Abs(x))
     {
         float angle = RestrictedArcTan(y / x);
-        return (x < 0.f) ? (angle + M_PI) : angle;
+        return (x < 0.f) ? (angle + kPi) : angle;
     }
     else
     {
         float angle = RestrictedArcCot(x / y);
-        return (y < 0.f) ? (angle + M_PI) : angle;
+        return (y < 0.f) ? (angle + kPi) : angle;
     }
 }
 
 inline float VectorToPhase(float x, float y)
 {
-    return FractionalPart(VectorToAngle(x, y) / (2 * M_PI) + 1.f);
+    return FractionalPart(VectorToAngle(x, y) / (2 * kPi) + 1.f);
 }
 
 }
