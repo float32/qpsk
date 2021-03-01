@@ -17,7 +17,7 @@ A Python script is provided for encoding firmware into a wav file.
     Automatic gain control and basic error correction reduce
     decoding errors.
 - **High performance, small footprint**:
-    Tested on a Cortex-M4F down to 32MHz with a 16Kbaud QPSK signal.
+    Tested on a Cortex-M4F down to 32MHz with an 8Kbaud QPSK signal.
     Can squeeze into as little as 12KB.
 - **Portable**: No assumptions made about underlying hardware. No dependencies
     outside of the C++ standard library.
