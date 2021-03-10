@@ -210,7 +210,6 @@ protected:
     Block<block_size> block_;
     std::atomic_bool abort_;
     std::atomic_bool overflow_;
-    static_assert(std::atomic_bool::is_always_lock_free);
 
     void FlushSamples(void)
     {
