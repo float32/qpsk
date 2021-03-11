@@ -183,7 +183,8 @@ class Arrangement:
     def __init__(self, flash_spec, reserved_size,
                 block_size, fill_byte, write_time, data):
         self._blocks = []
-        for (erase_time, page_data) in Pages(data, flash_spec, reserved_size):
+        pages = Pages(data, flash_spec, reserved_size, block_size)
+        for (erase_time, page_data) in pages:
             blocks = Blocks(page_data, block_size, fill_byte)
             for i, block_data in enumerate(blocks):
                 wait_time = write_time;
@@ -329,7 +330,7 @@ def parse_size(size):
         return int(size, 0)
 
 class Pages:
-    def __init__(self, data, flash_spec, reserved_size):
+    def __init__(self, data, flash_spec, reserved_size, block_size):
         page_spec = self._page_specs(flash_spec)
 
         while reserved_size > 0:
@@ -340,6 +341,8 @@ class Pages:
         self._pages = []
         while len(data) > 0:
             (page_size, erase_time) = next(page_spec)
+            assert page_size >= block_size
+            assert page_size % block_size == 0
             self._pages.append((erase_time, data[:page_size]))
             data = data[page_size:]
 
