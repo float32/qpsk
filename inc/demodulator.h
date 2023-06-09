@@ -232,12 +232,12 @@ protected:
         if (!wrapped)
         {
             decide_ = (prev_phase < decision_phase_) &&
-                     (phase >= decision_phase_);
+                      (phase >= decision_phase_);
         }
         else
         {
             decide_ = (prev_phase < decision_phase_) ||
-                     (phase >= decision_phase_);
+                      (phase >= decision_phase_);
         }
 
         if (state_ == STATE_CARRIER_SYNC)
