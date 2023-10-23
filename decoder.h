@@ -165,7 +165,7 @@ public:
     }
 
     // Accessors for debug and simulation
-    uint8_t* packet_data(void)       {return packet_.data();}
+    const uint8_t* packet_data(void) {return packet_.data();}
     uint8_t  packet_byte(void)       {return packet_.last_byte();}
     float    pll_phase(void)         {return demodulator_.pll_phase();}
     float    pll_error(void)         {return demodulator_.pll_error();}

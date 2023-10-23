@@ -140,7 +140,7 @@ public:
         return full() && (calculated_crc() == expected_crc());
     }
 
-    uint8_t* data(void)
+    const uint8_t* data(void)
     {
         return packet_.data;
     }
@@ -184,7 +184,7 @@ public:
         return size_ == block_size;
     }
 
-    uint32_t* data(void)
+    const uint32_t* data(void)
     {
         return data_;
     }
