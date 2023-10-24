@@ -48,6 +48,7 @@ enum Error
     ERROR_CRC,
     ERROR_OVERFLOW,
     ERROR_ABORT,
+    ERROR_LENGTH,
 };
 
 template <uint32_t sample_rate,
@@ -74,6 +75,8 @@ public:
 
         packet_.Reset();
         block_.Clear();
+        bytes_received_ = 0;
+        total_size_bytes_ = 0;
 
         abort_.store(false, std::memory_order_relaxed);
         error_ = ERROR_NONE;
@@ -135,6 +138,10 @@ public:
                 {
                     result = Sync(symbol);
                 }
+                else if (state_ == STATE_META)
+                {
+                    result = GetMetadata(symbol);
+                }
                 else if (state_ == STATE_DECODE)
                 {
                     result = Decode(symbol);
@@ -164,6 +171,28 @@ public:
         return block_.data();
     }
 
+    uint32_t total_size_bytes(void)
+    {
+        return total_size_bytes_;
+    }
+
+    uint32_t bytes_received(void)
+    {
+        return bytes_received_;
+    }
+
+    float progress(void)
+    {
+        if (total_size_bytes_ == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return bytes_received_ * 1.0 / total_size_bytes_;
+        }
+    }
+
     // Accessors for debug and simulation
     const uint8_t* packet_data(void) {return packet_.data();}
     uint8_t  packet_byte(void)       {return packet_.last_byte();}
@@ -187,6 +216,7 @@ protected:
     static constexpr uint32_t kMarkerLength = 16;
     static constexpr uint32_t kBlockMarker = 0xCCCCCCCC;
     static constexpr uint32_t kEndMarker = 0xF0F0F0F0;
+    static_assert(packet_size >= 4);
     static_assert(block_size % packet_size == 0);
     static_assert(packet_size % 4 == 0);
 
@@ -197,6 +227,7 @@ protected:
         STATE_WRITE,
         STATE_END,
         STATE_ERROR,
+        STATE_META,
     };
 
     Fifo<float, fifo_capacity> samples_;
@@ -210,6 +241,8 @@ protected:
     Block<block_size> block_;
     std::atomic_bool abort_;
     std::atomic_bool overflow_;
+    uint32_t bytes_received_;
+    uint32_t total_size_bytes_;
 
     void FlushSamples(void)
     {
@@ -233,13 +266,20 @@ protected:
         {
             if (marker_code_ == kBlockMarker)
             {
-                state_ = STATE_DECODE;
+                state_ = (bytes_received_ == 0) ? STATE_META : STATE_DECODE;
                 return RESULT_NONE;
             }
             else if (marker_code_ == kEndMarker)
             {
-                state_ = STATE_END;
-                return RESULT_END;
+                if (bytes_received_ == total_size_bytes_)
+                {
+                    state_ = STATE_END;
+                    return RESULT_END;
+                }
+                else
+                {
+                    return ReportError(ERROR_LENGTH);
+                }
             }
             else
             {
@@ -254,7 +294,7 @@ protected:
 
     Result Decode(uint8_t symbol)
     {
-        packet_.WriteSymbol(symbol);
+        bytes_received_ += packet_.WriteSymbol(symbol);
 
         if (packet_.full())
         {
@@ -280,6 +320,33 @@ protected:
         {
             return RESULT_NONE;
         }
+    }
+
+    Result GetMetadata(uint8_t symbol)
+    {
+        packet_.WriteSymbol(symbol);
+
+        if (packet_.full())
+        {
+            if (packet_.valid())
+            {
+                total_size_bytes_ =
+                    *reinterpret_cast<const uint32_t*>(packet_.data());
+
+                #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+                    total_size_bytes_ = __builtin_bswap32(total_size_bytes_);
+                #endif
+
+                packet_.Reset();
+                state_ = STATE_DECODE;
+            }
+            else
+            {
+                return ReportError(ERROR_CRC);
+            }
+        }
+
+        return RESULT_NONE;
     }
 
     Result ReportError(Error error)

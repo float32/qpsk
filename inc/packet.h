@@ -64,8 +64,10 @@ protected:
     static_assert(
         kPacketDataLength * 8 <= max_data_bits(sizeof(packet_.ecc) * 8));
 
-    void PushByte(uint8_t byte)
+    bool PushByte(uint8_t byte)
     {
+        bool was_data_byte = (size_ < kPacketDataLength);
+
         if (size_ < sizeof(QPSKPacket))
         {
             bytes_[size_] = byte;
@@ -76,6 +78,8 @@ protected:
                 Finalize();
             }
         }
+
+        return was_data_byte;
     }
 
     void Finalize(void)
@@ -105,15 +109,18 @@ public:
         byte_ = 1;
     }
 
-    void WriteSymbol(uint8_t symbol)
+    bool WriteSymbol(uint8_t symbol)
     {
         byte_ = (byte_ << 2) | symbol;
+        bool was_data_byte = false;
 
         if (byte_ & 0x100)
         {
-            PushByte(byte_);
+            was_data_byte = PushByte(byte_);
             byte_ = 1;
         }
+
+        return was_data_byte;
     }
 
     bool full(void)

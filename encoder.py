@@ -191,10 +191,13 @@ class Arrangement:
                 if i == 0:
                     wait_time += erase_time
                 self._blocks.append((block_data, wait_time / 1000))
+        self._size = len(self._blocks) * block_size
 
     def __iter__(self):
         return iter(self._blocks)
 
+    def size(self):
+        return self._size
 
 
 class Encoder:
@@ -279,8 +282,14 @@ class Encoder:
     def encode(self, blocks):
         symbols = []
         symbols += self._encode_intro()
+        size = blocks.size()
 
-        for (data, time) in blocks:
+        for i, (data, time) in enumerate(blocks):
+            if i == 0:
+                # Prepend metadata packet
+                meta = struct.pack('<L', size)
+                padding = self._packet_size - len(meta)
+                data = meta + (b'\x00' * padding) + data
             symbols += self._encode_block(data)
             symbols += self._encode_blank(time)
 
