@@ -82,10 +82,9 @@ class Decoder
 };
 ```
 
-`sample_rate` and `symbol_rate` are measured in Hz and should approximate
-the rates of the incoming signal (they need not match the rates of the
-encoded audio file). `sample_rate` must be 6, 8, 12, or 16 times
-the `symbol_rate`.
+`sample_rate` and `symbol_rate` are measured in Hz. The symbol rate must match
+the encoded audio file, but the sample rates need not match. `sample_rate` must
+be 6, 8, 12, or 16 times the `symbol_rate`.
 
 `packet_size` and `block_size` are measured in bytes and must match the
 values that were passed to the encoder. `block_size` must be a multiple
